@@ -1,4 +1,5 @@
 from app.models.plugin import Plugin
+from app.models.project import Project
 from app.models.user import User
 
-__all__ = ["User", "Plugin"]
+__all__ = ["User", "Plugin", "Project"]

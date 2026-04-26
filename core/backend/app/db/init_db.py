@@ -1,5 +1,5 @@
 from app.db.session import Base, engine
-from app.models import plugin, user  # noqa: F401
+from app.models import plugin, project, user  # noqa: F401
 
 
 def init_db() -> None:

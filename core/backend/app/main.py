@@ -1,6 +1,6 @@
 from fastapi import FastAPI, WebSocket
 
-from app.api.routes import ai, auth, plugins
+from app.api.routes import ai, auth, context, plugins, projects
 from app.core.middleware import RBACMiddleware
 from app.db.init_db import init_db
 from app.services.plugin_loader import PluginLoader
@@ -15,6 +15,8 @@ app.add_middleware(RBACMiddleware)
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(plugins.router, prefix="/api/v1/plugins", tags=["plugins"])
 app.include_router(ai.router, prefix="/api/v1/ai", tags=["ai"])
+app.include_router(projects.router, prefix="/api/v1/projects", tags=["projects"])
+app.include_router(context.router, prefix="/api/v1", tags=["context"])
 
 plugin_loader = PluginLoader()
 

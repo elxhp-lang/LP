@@ -60,6 +60,21 @@ core/backend/.venv/Scripts/python plugins/sandbox/run_lifecycle_demo.py
 (403, {"detail":"plugin 'plugin.translation.gpt' has no permission 'market:read'"})
 ```
 
+## 4.1 Web 插件控制台联调
+
+前端页面：`web/app/dashboard/plugins/page.tsx`
+
+- 支持两个插件的安装、配置、使用、卸载。
+- 翻译插件配置：`sourceLanguage` / `targetLanguage`。
+- 市场分析插件配置：`market`。
+- 页面会展示每次操作的 API 返回，便于联调排查。
+
+启动前端后访问：
+
+```text
+http://localhost:3000/dashboard/plugins
+```
+
 ## 5. 发布前检查清单
 
 - `manifest.json` 权限声明是否最小化

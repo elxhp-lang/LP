@@ -42,3 +42,5 @@ npm run dev
 
 - 关键模块实现基于：`docs/architecture/stage-1-architecture.md`
 - 插件生命周期、沙箱预留和租户隔离字段已在骨架中预留扩展点
+- **前端 UI 初版规范（页面结构、Design Token、前后端交互矩阵、环境变量清单）**：`docs/design/frontend-ui-spec-v1.md`
+- **开发进度、待办与接手说明（活文档）**：`docs/memory/development-status.md`

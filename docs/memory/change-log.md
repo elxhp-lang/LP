@@ -64,3 +64,24 @@
   - 增强后端插件加载器与插件路由，新增 `configure/use` 生命周期接口与权限拦截。
 - 变更原因：推进阶段三交付，形成可运行、可演示、可扩展的插件生态最小闭环。
 - 影响范围：插件开发流程、平台插件管理接口、MVP 演示能力与后续生态扩展基线。
+
+## 2026-04-26
+
+### CHG-008：Phase 1 平台壳（项目 API + Web AppShell）与开发进度活文档
+- 变更内容：
+  - 后端新增 `Project` 模型与 `/api/v1/projects` 列表/创建/详情接口；测试依赖 `httpx`；`tests/conftest.py` 保证测试前 `init_db()`。
+  - 前端新增 `globals.css`（Design Token）、`AppShell`（导航、项目切换、`localStorage` 当前项目）、`apiGet`；根布局接入壳层（登录/注册仍为全屏）。
+  - 新增 **`docs/memory/development-status.md`**：接手阅读顺序、当前进度、待办、验证命令与环境说明，供后续团队快速对齐。
+  - `docs/design/frontend-ui-spec-v1.md` 补充项目相关 API 与顶栏行为。
+- 变更原因：落实「先搭架构与契约」策略，并把进度与后续事项从会话沉淀为可维护文档。
+- 影响范围：新成员上手路径、前后端协作约定、下一阶段（`x-project-id`、占位页、Agent）依赖本基础。
+
+### CHG-009：项目请求上下文（x-project-id）与三占位页
+- 变更内容：
+  - 中间件：可选 `x-project-id`，校验属于当前租户，写入 `request.state.project_id`；非法则 404。
+  - 新增 `GET /api/v1/context` 返回 `tenant_id` / `project_id`；测试 `tests/test_context_api.py`。
+  - 前端：`web/lib/constants.ts`；`apiGet`/`apiPost` 自动附加 `x-project-id`（来自 localStorage）。
+  - 新增路由页 `/chat`、`/market`、`/workflow`（占位文案）；`AppShell` 导航链接。
+  - 更新 `frontend-ui-spec-v1.md`、`development-status.md` 待办勾选。
+- 变更原因：为超级 Agent、市场与工作流接入提供统一请求上下文，避免后期全量改接口。
+- 影响范围：所有带项目选择的 API 调用、联调文档、后续业务路由开发。

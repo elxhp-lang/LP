@@ -1,0 +1,87 @@
+# 开发进度与接手说明（活文档）
+
+> **用途**：新成员或外部团队接入时，**优先阅读本文件**，再按链接深入。  
+> **维护规则**：每完成一个可演示里程碑或变更协作方式时，更新「当前进度」与「待办事项」；重大变更同步 `change-log.md` 与 `decisions.md`。
+
+---
+
+## 一、项目一句话
+
+**轻核心 + 插件生态 + 超级 Agent（后期外接大模型，如 DeepSeek）**；Web 为主、移动后续对齐同一套 API。产品上有 **对话模式（小白）** 与 **Agent 插件自配** 两条路径，以及 **项目制 + 工作流**。
+
+---
+
+## 二、新人阅读顺序（约 30～60 分钟）
+
+1. `docs/memory/project-memory.md` — 目标、边界、协作规则  
+2. `docs/memory/decisions.md` — 已拍板决策（含技术栈、插件验收基线等）  
+3. `docs/design/frontend-ui-spec-v1.md` — 前端 UI 初版规范、页面地图、**前后端接口矩阵**、环境变量  
+4. `docs/development/stage-2-dev-setup.md` — 本地/Docker 启动  
+5. `docs/development/plugin-development-guide.md` — 插件与沙箱调试  
+6. `docs/architecture/stage-1-architecture.md` — 总体架构依据  
+
+---
+
+## 三、当前进度（截至文档更新日）
+
+### 已具备能力
+
+| 领域 | 状态 | 说明 |
+|------|------|------|
+| 后端骨架 | 可用 | FastAPI：认证、插件 install/configure/use/uninstall、AI 路由占位、健康检查 |
+| 插件生态 MVP | 可用 | SDK、TS 模板、两个示例插件、沙箱脚本、权限隔离演示 |
+| 项目（租户下） | 可用 | `GET/POST /api/v1/projects`、`GET /api/v1/projects/{id}`；表 `projects` |
+| Web 壳层 | 可用 | 全局 Design Token、`AppShell` 顶栏、项目下拉与新建、`/dashboard/plugins` 科技风控制台 |
+| 项目请求上下文 | 可用 | 可选 Header `x-project-id`；中间件校验租户归属；`GET /api/v1/context`；前端 `apiGet`/`apiPost` 自动带头 |
+| 占位路由 | 可用 | `/chat`、`/market`、`/workflow`（文案占位，已进顶栏导航） |
+| 前端规范 | 草案 | `frontend-ui-spec-v1.md`，确认后可标为 frozen |
+| 自动化验证 | 已跑通 | 后端 `pytest`（含 projects API）；**接手后请在 `core/backend` 下定期执行** |
+
+### 最近一次自动化验证（由开发侧执行，非业务方操作）
+
+- 命令：`cd core/backend && .venv\Scripts\python -m pytest -q`  
+- 结果：**6 passed**（含插件加载器与项目 API）  
+- 健康检查：`GET http://127.0.0.1:8000/health` → **200**（需本地已启动后端）  
+
+> **数据库说明**：若在增加 `projects` 表之前已有 `lp.db`，需**重启后端**或确保启动时执行 `init_db()`，以便 SQLite `create_all` 创建新表。
+
+---
+
+## 四、待办事项（按推荐顺序）
+
+以下与产品路线图一致，供排期拆 Sprint。
+
+1. ~~**请求上下文**：前端在 API 中携带当前项目（`x-project-id`），后端校验并写入 `request.state.project_id`。~~（已完成）  
+2. ~~**占位页面**：`/chat`、`/market`、`/workflow` 与导航。~~（已完成）  
+3. **超级 Agent v1**：规则/模板推荐 + 交易前检查（购买/Token）硬逻辑。  
+4. **工作流**：DAG 存储与只读可视化 → 再考虑拖拽编辑。  
+5. **移动端**：执行与查看优先，API 与 Web 共用。  
+6. **AI 网关**：Provider 可插拔，接入 DeepSeek 等。  
+7. **示例插件做实**：真实模型调用、评测与计费扣次。  
+
+---
+
+## 五、环境与配置速查
+
+| 位置 | 内容 |
+|------|------|
+| `web/.env.example` | `NEXT_PUBLIC_API_BASE_URL`、`NEXT_PUBLIC_TENANT_ID` 等 |
+| 后端默认库 | `core/backend/lp.db`（SQLite，开发用） |
+| 当前项目（前端） | `localStorage` 键：`lp_current_project_id` |
+
+---
+
+## 六、相关仓库与文档索引
+
+- 插件沙箱：`plugins/sandbox/run_lifecycle_demo.py`  
+- OpenAPI：`http://localhost:8000/docs`（本地启动后）  
+- 变更记录：`docs/memory/change-log.md`  
+
+---
+
+## 七、版本记录
+
+| 日期 | 说明 |
+|------|------|
+| 2026-04-26 | 初版：进度表、接手顺序、待办、验证方式 |
+| 2026-04-26 | 补充：`x-project-id` 中间件、`/api/v1/context`、占位页与文档同步 |

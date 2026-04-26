@@ -1,0 +1,44 @@
+:root {
+  --color-bg-base: #020617;
+  --color-bg-surface: rgba(15, 23, 42, 0.88);
+  --color-border-subtle: rgba(56, 189, 248, 0.25);
+  --color-border-strong: rgba(56, 189, 248, 0.45);
+  --color-text-primary: #e2e8f0;
+  --color-text-secondary: #93c5fd;
+  --color-text-muted: #94a3b8;
+  --color-accent: #38bdf8;
+  --color-success: #2dd4bf;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+  --color-code-bg: #020617;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --radius-card: 14px;
+  --radius-control: 10px;
+  --font-sans: system-ui, "Segoe UI", Roboto, "PingFang SC", sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", monospace;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body.app-body {
+  font-family: var(--font-sans);
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+}
+
+a.app-link {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+a.app-link:hover {
+  text-decoration: underline;
+}
