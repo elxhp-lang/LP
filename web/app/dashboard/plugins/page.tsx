@@ -262,6 +262,28 @@ export default function PluginDashboardPage() {
     setActivityLogs((prev) => [`[${now}] 已填充路由策略模板`, ...prev].slice(0, 8));
   };
 
+  const editRoutePolicy = (policy: AIRoutePolicy) => {
+    setRoutePolicyError("");
+    setNewRoutePolicy({
+      plugin_id: policy.plugin_id,
+      task_type: policy.task_type,
+      model_chain: policy.model_chain,
+      disabled_models: policy.disabled_models,
+    });
+    const now = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+    setActivityLogs((prev) => [`[${now}] 已加载策略到表单：${policy.id}`, ...prev].slice(0, 8));
+  };
+
+  const deleteRoutePolicy = async (policy: AIRoutePolicy) => {
+    setLoadingAction(`删除路由策略 ${policy.id}`);
+    const result = await apiPost("/api/v1/ai/route/policies/delete", { id: policy.id });
+    setLastResult(result);
+    const now = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+    setActivityLogs((prev) => [`[${now}] 删除路由策略 -> ${result.ok ? "成功" : "失败"}`, ...prev].slice(0, 8));
+    void refreshAiOpsPanels();
+    setLoadingAction("");
+  };
+
   const statusColor = (status: PluginStatus) => {
     if (status === "运行中") return "#0f766e";
     if (status === "失败") return "#b91c1c";
@@ -552,8 +574,34 @@ export default function PluginDashboardPage() {
             <ul style={{ margin: 0, paddingLeft: 18 }}>
               {aiRoutePolicies.slice(0, 6).map((item) => (
                 <li key={item.id} style={{ marginBottom: 6, color: "#bae6fd", fontSize: 13 }}>
-                  {item.plugin_id} / {item.task_type} ｜链路 {item.model_chain || "-"} ｜禁用{" "}
-                  {item.disabled_models || "-"}
+                  <div>
+                    {item.plugin_id} / {item.task_type} ｜链路 {item.model_chain || "-"} ｜禁用{" "}
+                    {item.disabled_models || "-"}
+                  </div>
+                  <div style={{ marginTop: 4, display: "flex", gap: 8 }}>
+                    <button
+                      style={{ ...buttonStyle, padding: "4px 8px", fontSize: 12 }}
+                      type="button"
+                      disabled={Boolean(loadingAction)}
+                      onClick={() => editRoutePolicy(item)}
+                    >
+                      编辑
+                    </button>
+                    <button
+                      style={{
+                        ...buttonStyle,
+                        padding: "4px 8px",
+                        fontSize: 12,
+                        border: "1px solid rgba(248,113,113,0.55)",
+                        background: "linear-gradient(180deg, rgba(153,27,27,0.45), rgba(127,29,29,0.3))",
+                      }}
+                      type="button"
+                      disabled={Boolean(loadingAction)}
+                      onClick={() => void deleteRoutePolicy(item)}
+                    >
+                      删除
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>

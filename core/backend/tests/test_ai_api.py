@@ -171,6 +171,31 @@ def test_ai_route_policy_overrides_chain(monkeypatch):
     assert called["model"] == "policy-model"
 
 
+def test_ai_route_policy_delete():
+    tenant = f"test-tenant-ai-{uuid4()}"
+    headers = {"x-tenant-id": tenant}
+    created = client.post(
+        "/api/v1/ai/route/policies",
+        headers=headers,
+        json={
+            "plugin_id": "plugin.translation.gpt",
+            "task_type": "translate",
+            "model_chain": "a|b",
+            "disabled_models": "",
+        },
+    )
+    assert created.status_code == 200
+    policy_id = created.json()["id"]
+
+    deleted = client.post("/api/v1/ai/route/policies/delete", headers=headers, json={"id": policy_id})
+    assert deleted.status_code == 200
+    assert deleted.json()["ok"] is True
+
+    listing = client.get("/api/v1/ai/route/policies", headers=headers)
+    assert listing.status_code == 200
+    assert all(item["id"] != policy_id for item in listing.json()["items"])
+
+
 def test_ai_route_circuit_breaker_skips_hot_failed_model(monkeypatch):
     tenant = f"test-tenant-ai-{uuid4()}"
     headers = {"x-tenant-id": tenant}

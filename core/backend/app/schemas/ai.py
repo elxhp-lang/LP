@@ -66,6 +66,10 @@ class AIRoutePolicyListResponse(BaseModel):
     items: list[AIRoutePolicyItem]
 
 
+class AIRoutePolicyDeleteRequest(BaseModel):
+    id: str
+
+
 class AIBillingRecordItem(BaseModel):
     id: str
     plugin_id: str

@@ -11,6 +11,7 @@ from app.db.session import get_db
 from app.models.ai_usage import AIAuditLog, AIBillingRecord, AIQuota, AIRoutePolicy, AIUsageEvent
 from app.models.billing import Wallet
 from app.schemas.ai import (
+    AIRoutePolicyDeleteRequest,
     AIAuditLogItem,
     AIAuditLogListResponse,
     AIBillingRecordItem,
@@ -416,3 +417,19 @@ def upsert_route_policy(payload: AIRoutePolicyUpsertRequest, request: Request, d
         disabled_models=row.disabled_models,
         updated_at=row.updated_at.isoformat() if row.updated_at else "",
     )
+
+
+@router.post("/route/policies/delete")
+def delete_route_policy(payload: AIRoutePolicyDeleteRequest, request: Request, db: Session = Depends(get_db)):
+    tenant_id = request.state.tenant_id
+    row = db.scalar(
+        select(AIRoutePolicy).where(
+            AIRoutePolicy.id == payload.id,
+            AIRoutePolicy.tenant_id == tenant_id,
+        )
+    )
+    if row is None:
+        return {"ok": False, "message": "policy not found"}
+    db.delete(row)
+    db.commit()
+    return {"ok": True, "message": "deleted"}
