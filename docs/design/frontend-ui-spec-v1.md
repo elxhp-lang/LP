@@ -151,6 +151,9 @@
 | 项目详情 | GET | `/api/v1/projects/{project_id}` | - | 详情页预留 |
 | 对话推荐（规则引擎） | POST | `/api/v1/agent/recommend` | `message` | `/chat` 展示意图摘要、插件卡、工作流草案 |
 | 运行前检查（占位） | POST | `/api/v1/agent/preflight` | `plugin_ids` | MVP 恒 `allowed: true`，后续接计费/RBAC |
+| 工作流列表 | GET | `/api/v1/workflows` | Query：`project_id?` | `/workflow` 左侧列表；未选项目则列租户全部 |
+| 工作流创建 | POST | `/api/v1/workflows` | `name`, `description?`, `project_id?`, `steps[]` | 对话页「保存为工作流」；未传 `project_id` 时用 Header 上下文 |
+| 工作流详情 | GET | `/api/v1/workflows/{workflow_id}` | - | 详情与只读步骤（预留扩展 GET 列表已含 definition） |
 
 ### 6.2 预留接口（命名空间建议）
 

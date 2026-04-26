@@ -24,6 +24,7 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<RecommendPayload | null>(null);
   const [preflight, setPreflight] = useState<unknown>(null);
+  const [savingWf, setSavingWf] = useState(false);
 
   const onRecommend = async () => {
     setLoading(true);
@@ -42,6 +43,30 @@ export default function ChatPage() {
     const ids = result?.plugins.map((p) => p.plugin_id) ?? [];
     const res = await apiPost("/api/v1/agent/preflight", { plugin_ids: ids });
     setPreflight(res.data ?? { detail: res.message, ok: res.ok });
+  };
+
+  const onSaveWorkflow = async () => {
+    if (!result) {
+      return;
+    }
+    const defaultName = `推荐 ${new Date().toISOString().slice(0, 16).replace("T", " ")}`;
+    const name =
+      typeof window !== "undefined" ? window.prompt("工作流名称", defaultName) ?? "" : defaultName;
+    if (!name.trim()) {
+      return;
+    }
+    setSavingWf(true);
+    const res = await apiPost("/api/v1/workflows", {
+      name: name.trim(),
+      description: result.intent_summary,
+      steps: result.workflow_draft.steps,
+    });
+    setSavingWf(false);
+    if (res.ok) {
+      window.alert("已保存。可到「工作流」页查看。");
+    } else {
+      window.alert(typeof res.message === "string" ? res.message : "保存失败");
+    }
   };
 
   return (
@@ -102,6 +127,21 @@ export default function ChatPage() {
           }}
         >
           运行前检查（占位）
+        </button>
+        <button
+          type="button"
+          disabled={!result || savingWf}
+          onClick={() => void onSaveWorkflow()}
+          style={{
+            padding: "10px 16px",
+            borderRadius: "var(--radius-control)",
+            border: "1px solid var(--color-border-subtle)",
+            background: "transparent",
+            color: "var(--color-text-primary)",
+            cursor: result && !savingWf ? "pointer" : "not-allowed",
+          }}
+        >
+          {savingWf ? "保存中…" : "保存为工作流"}
         </button>
       </div>
 

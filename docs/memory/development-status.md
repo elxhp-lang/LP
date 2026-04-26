@@ -33,15 +33,16 @@
 | 项目（租户下） | 可用 | `GET/POST /api/v1/projects`、`GET /api/v1/projects/{id}`；表 `projects` |
 | Web 壳层 | 可用 | 全局 Design Token、`AppShell` 顶栏、项目下拉与新建、`/dashboard/plugins` 科技风控制台 |
 | 项目请求上下文 | 可用 | 可选 Header `x-project-id`；中间件校验租户归属；`GET /api/v1/context`；前端 `apiGet`/`apiPost` 自动带头 |
-| 占位路由 | 可用 | `/market`、`/workflow`（文案占位）；`/chat` 已接 **Agent 推荐 + preflight** |
+| 占位路由 | 可用 | `/market`（文案占位）；`/chat` 已接 **Agent 推荐 + preflight**；`/workflow` 已接 **列表 + 只读步骤** |
 | 超级 Agent v1（骨架） | 可用 | `POST /api/v1/agent/recommend`、`/preflight`；规则引擎 + 契约与后续 LLM 对齐；`/chat` 表单联调 |
+| 工作流持久化 v1 | 可用 | 表 `workflows`；`GET/POST /api/v1/workflows`、`GET /{id}`；定义 JSON `version`+`steps`；`/chat` 可保存草案 |
 | 前端规范 | 草案 | `frontend-ui-spec-v1.md`，确认后可标为 frozen |
 | 自动化验证 | 已跑通 | 后端 `pytest`（含 projects API）；**接手后请在 `core/backend` 下定期执行** |
 
 ### 最近一次自动化验证（由开发侧执行，非业务方操作）
 
 - 命令：`cd core/backend && .venv\Scripts\python -m pytest -q`  
-- 结果：**11 passed**（含 Agent、context、projects、插件等）  
+- 结果：**14 passed**（含工作流、Agent、context、projects、插件等）  
 - 健康检查：`GET http://127.0.0.1:8000/health` → **200**（需本地已启动后端）  
 
 > **数据库说明**：若在增加 `projects` 表之前已有 `lp.db`，需**重启后端**或确保启动时执行 `init_db()`，以便 SQLite `create_all` 创建新表。
@@ -55,10 +56,16 @@
 1. ~~**请求上下文**：前端在 API 中携带当前项目（`x-project-id`），后端校验并写入 `request.state.project_id`。~~（已完成）  
 2. ~~**占位页面**：`/chat`、`/market`、`/workflow` 与导航。~~（已完成）  
 3. ~~**超级 Agent v1（MVP）**：规则推荐 + preflight 占位 API + `/chat` 展示。~~（已完成骨架；后续再接真实计费闸门与 LLM）  
-4. **工作流**：DAG 存储与只读可视化 → 再考虑拖拽编辑。  
+4. ~~**工作流 v1**：线性步骤存储 + 列表/只读展示 + 对话页保存。~~（已完成；后续 DAG 编辑、执行态、日志）  
 5. **移动端**：执行与查看优先，API 与 Web 共用。  
 6. **AI 网关**：Provider 可插拔，接入 DeepSeek 等。  
 7. **示例插件做实**：真实模型调用、评测与计费扣次。  
+
+### 给业务方（非技术）
+
+- **技术路线与下一版做什么**：由开发侧按上表「待办」与架构文档**自主排期**，无需逐项拍板接口或框架。
+- **您需要关心的**：产品目标是否变化（例如先做移动端、先上市场页）；若有变化，用自然语言说明即可。
+- **进度怎么看**：看上文「已具备能力」与「待办」勾选；细节变更在 `change-log.md`。
 
 ---
 
@@ -87,3 +94,4 @@
 | 2026-04-26 | 初版：进度表、接手顺序、待办、验证方式 |
 | 2026-04-26 | 补充：`x-project-id` 中间件、`/api/v1/context`、占位页与文档同步 |
 | 2026-04-26 | 超级 Agent：`/api/v1/agent/recommend` & `preflight`，`/chat` 联调；`pytest` 11 passed |
+| 2026-04-26 | 工作流：`workflows` API、`/workflow` 只读页、`/chat` 保存；`pytest` 14 passed |

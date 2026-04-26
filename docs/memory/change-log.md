@@ -94,3 +94,12 @@
   - 文档：`frontend-ui-spec-v1.md` §6.1 矩阵；`development-status.md` 进度与验证条数。
 - 变更原因：落实「轻核心 + 插件 + 超级 Agent」路线，先固定 API 契约与 UI 闭环，便于后续替换为 LLM 与市场检索而不改前端集成点。
 - 影响范围：对话模式、运行前闸门扩展、OpenAPI `/api/v1/agent/*`。
+
+### CHG-011：工作流 v1（持久化 + 只读 UI + 对话保存）
+- 变更内容：
+  - 后端：`Workflow` 模型与 `workflows` 表；`GET/POST /api/v1/workflows`、`GET /api/v1/workflows/{id}`；`project_id` 可来自 Body 或 `x-project-id` 上下文；`definition` JSON（`version` + `steps`）。
+  - 测试：`tests/test_workflows_api.py`。
+  - 前端：`/workflow` 客户端页（列表、线性步骤只读）；`/chat` 增加「保存为工作流」。
+  - 文档：`frontend-ui-spec-v1.md` §6.1；`development-status.md`（含业务方说明）；本条目。
+- 变更原因：落实路线图「先存储与只读可视化，再拖拽与执行」，并与 Agent 草案结构对齐，减少后续改契约成本。
+- 影响范围：SQLite 需 `init_db()` 建新表；OpenAPI 新增 `/api/v1/workflows/*`。
