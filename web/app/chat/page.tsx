@@ -42,6 +42,7 @@ export default function ChatPage() {
   const [savingWf, setSavingWf] = useState(false);
   const [runningFlow, setRunningFlow] = useState(false);
   const [flowLogs, setFlowLogs] = useState<FlowRunLog[]>([]);
+  const [flowReadyHint, setFlowReadyHint] = useState<string | null>(null);
 
   const runPreflightByIds = async (ids: string[]) => {
     const res = await apiPost("/api/v1/agent/preflight", { plugin_ids: ids });
@@ -93,6 +94,9 @@ export default function ChatPage() {
       return;
     }
     const qs = new URLSearchParams(window.location.search);
+    if (qs.get("flow_ready") === "1") {
+      setFlowReadyHint("支付与安装已完成，推荐流程可直接执行。");
+    }
     if (qs.get("autopreflight") !== "1") {
       return;
     }
@@ -188,6 +192,21 @@ export default function ChatPage() {
           }}
         />
       </label>
+      {flowReadyHint ? (
+        <div
+          style={{
+            marginBottom: "var(--space-md)",
+            padding: "var(--space-sm) var(--space-md)",
+            borderRadius: "var(--radius-control)",
+            border: "1px solid var(--color-border-subtle)",
+            background: "var(--color-bg-surface)",
+            color: "var(--color-success)",
+            fontSize: 13,
+          }}
+        >
+          {flowReadyHint}
+        </div>
+      ) : null}
 
       <div style={{ display: "flex", gap: "var(--space-sm)", flexWrap: "wrap", marginBottom: "var(--space-lg)" }}>
         <button

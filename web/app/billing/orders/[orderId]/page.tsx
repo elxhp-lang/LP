@@ -106,6 +106,17 @@ export default function BillingOrderDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order?.status, order?.plugin_id]);
 
+  useEffect(() => {
+    if (!installed || !returnTo) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      const sep = returnTo.includes("?") ? "&" : "?";
+      router.push(`${returnTo}${sep}flow_ready=1`);
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [installed, returnTo, router]);
+
   return (
     <main style={{ padding: "var(--space-xl)", maxWidth: 760 }}>
       <p style={{ marginBottom: "var(--space-md)" }}>
@@ -117,6 +128,11 @@ export default function BillingOrderDetailPage() {
       <p style={{ color: "var(--color-text-secondary)" }}>
         支付渠道联调占位页。待支付订单会每 3 秒自动刷新状态。
       </p>
+      {installed && returnTo ? (
+        <p style={{ color: "var(--color-success)", fontSize: 13 }}>
+          已安装成功，正在返回上一流程…
+        </p>
+      ) : null}
 
       {error ? (
         <p style={{ color: "var(--color-danger)", marginBottom: "var(--space-md)" }}>{error}</p>
