@@ -80,6 +80,7 @@ export default function PluginDashboardPage() {
     model_chain: "deepseek-chat|gpt-4o-mini",
     disabled_models: "",
   });
+  const [routePolicyError, setRoutePolicyError] = useState<string>("");
 
   const actionHint = useMemo(() => {
     if (!loadingAction) {
@@ -215,6 +216,20 @@ export default function PluginDashboardPage() {
   };
 
   const createRoutePolicy = async () => {
+    const chain = newRoutePolicy.model_chain.trim();
+    if (!chain) {
+      setRoutePolicyError("模型链路不能为空。");
+      return;
+    }
+    if (chain.includes("||") || chain.startsWith("|") || chain.endsWith("|")) {
+      setRoutePolicyError("模型链路格式不正确，示例：modelA|modelB。");
+      return;
+    }
+    if (newRoutePolicy.disabled_models.includes("||")) {
+      setRoutePolicyError("禁用模型格式不正确，可用英文逗号分隔。");
+      return;
+    }
+    setRoutePolicyError("");
     setLoadingAction("新增 AI 路由策略");
     const result = await apiPost("/api/v1/ai/route/policies", newRoutePolicy);
     setLastResult(result);
@@ -222,6 +237,18 @@ export default function PluginDashboardPage() {
     setActivityLogs((prev) => [`[${now}] 新增路由策略 -> ${result.ok ? "成功" : "失败"}`, ...prev].slice(0, 8));
     void refreshAiOpsPanels();
     setLoadingAction("");
+  };
+
+  const applyRoutePolicyTemplate = () => {
+    setRoutePolicyError("");
+    setNewRoutePolicy({
+      plugin_id: "plugin.translation.gpt",
+      task_type: "translate",
+      model_chain: "deepseek-chat|gpt-4o-mini",
+      disabled_models: "",
+    });
+    const now = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+    setActivityLogs((prev) => [`[${now}] 已填充路由策略模板`, ...prev].slice(0, 8));
   };
 
   const statusColor = (status: PluginStatus) => {
@@ -592,6 +619,21 @@ export default function PluginDashboardPage() {
             >
               保存策略
             </button>
+            <button
+              style={{
+                ...buttonStyle,
+                border: "1px solid rgba(192,132,252,0.55)",
+                background: "linear-gradient(180deg, rgba(124,58,237,0.45), rgba(30,64,175,0.25))",
+              }}
+              type="button"
+              disabled={Boolean(loadingAction)}
+              onClick={applyRoutePolicyTemplate}
+            >
+              一键填充策略模板
+            </button>
+            {routePolicyError ? (
+              <p style={{ margin: 0, color: "#fda4af", fontSize: 12 }}>{routePolicyError}</p>
+            ) : null}
           </div>
         </section>
       </div>
