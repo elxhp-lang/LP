@@ -11,6 +11,7 @@ from app.db.session import get_db
 from app.models.ai_usage import AIAuditLog, AIBillingRecord, AIQuota, AIRoutePolicy, AIUsageEvent
 from app.models.billing import Wallet
 from app.schemas.ai import (
+    AIRoutePolicyBatchDeleteRequest,
     AIRoutePolicyDeleteRequest,
     AIAuditLogItem,
     AIAuditLogListResponse,
@@ -433,3 +434,25 @@ def delete_route_policy(payload: AIRoutePolicyDeleteRequest, request: Request, d
     db.delete(row)
     db.commit()
     return {"ok": True, "message": "deleted"}
+
+
+@router.post("/route/policies/delete-batch")
+def delete_route_policies_batch(
+    payload: AIRoutePolicyBatchDeleteRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    tenant_id = request.state.tenant_id
+    ids = [x.strip() for x in payload.ids if isinstance(x, str) and x.strip()]
+    if not ids:
+        return {"ok": False, "message": "no ids provided", "deleted_count": 0}
+    rows = db.scalars(
+        select(AIRoutePolicy).where(
+            AIRoutePolicy.tenant_id == tenant_id,
+            AIRoutePolicy.id.in_(ids),
+        )
+    ).all()
+    for row in rows:
+        db.delete(row)
+    db.commit()
+    return {"ok": True, "message": "deleted", "deleted_count": len(rows)}

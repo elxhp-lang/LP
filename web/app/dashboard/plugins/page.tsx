@@ -90,6 +90,7 @@ export default function PluginDashboardPage() {
   const [routePolicyError, setRoutePolicyError] = useState<string>("");
   const [lastRoutePolicySubmit, setLastRoutePolicySubmit] = useState<RoutePolicySubmitResult | null>(null);
   const [routePolicyKeyword, setRoutePolicyKeyword] = useState("");
+  const [selectedPolicyIds, setSelectedPolicyIds] = useState<string[]>([]);
 
   const actionHint = useMemo(() => {
     if (!loadingAction) {
@@ -126,6 +127,9 @@ export default function PluginDashboardPage() {
     if (policiesRes.ok && policiesRes.data && typeof policiesRes.data === "object" && "items" in policiesRes.data) {
       const items = (policiesRes.data as { items: AIRoutePolicy[] }).items;
       setAiRoutePolicies(Array.isArray(items) ? items : []);
+      setSelectedPolicyIds((prev) =>
+        prev.filter((id) => (Array.isArray(items) ? items.some((x) => x.id === id) : false)),
+      );
     }
   };
 
@@ -297,6 +301,24 @@ export default function PluginDashboardPage() {
     setLastResult(result);
     const now = new Date().toLocaleTimeString("zh-CN", { hour12: false });
     setActivityLogs((prev) => [`[${now}] 删除路由策略 -> ${result.ok ? "成功" : "失败"}`, ...prev].slice(0, 8));
+    void refreshAiOpsPanels();
+    setLoadingAction("");
+  };
+
+  const togglePolicySelected = (id: string) => {
+    setSelectedPolicyIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const deleteSelectedPolicies = async () => {
+    if (selectedPolicyIds.length === 0) {
+      return;
+    }
+    setLoadingAction(`批量删除策略 (${selectedPolicyIds.length})`);
+    const result = await apiPost("/api/v1/ai/route/policies/delete-batch", { ids: selectedPolicyIds });
+    setLastResult(result);
+    const now = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+    setActivityLogs((prev) => [`[${now}] 批量删除策略 -> ${result.ok ? "成功" : "失败"}`, ...prev].slice(0, 8));
+    setSelectedPolicyIds([]);
     void refreshAiOpsPanels();
     setLoadingAction("");
   };
@@ -602,6 +624,25 @@ export default function PluginDashboardPage() {
               }}
             />
           </div>
+          {filteredRoutePolicies.length > 0 ? (
+            <div style={{ marginBottom: 10, display: "flex", gap: 8, alignItems: "center" }}>
+              <button
+                style={{
+                  ...buttonStyle,
+                  padding: "6px 10px",
+                  fontSize: 12,
+                  border: "1px solid rgba(248,113,113,0.55)",
+                  background: "linear-gradient(180deg, rgba(153,27,27,0.45), rgba(127,29,29,0.3))",
+                }}
+                type="button"
+                disabled={Boolean(loadingAction) || selectedPolicyIds.length === 0}
+                onClick={() => void deleteSelectedPolicies()}
+              >
+                批量删除（{selectedPolicyIds.length}）
+              </button>
+              <span style={{ color: "#93c5fd", fontSize: 12 }}>先勾选，再批量删除。</span>
+            </div>
+          ) : null}
           {aiRoutePolicies.length === 0 ? (
             <p style={{ color: "#93c5fd" }}>当前租户暂无路由策略（使用默认路由）</p>
           ) : filteredRoutePolicies.length === 0 ? (
@@ -611,6 +652,13 @@ export default function PluginDashboardPage() {
               {filteredRoutePolicies.slice(0, 8).map((item) => (
                 <li key={item.id} style={{ marginBottom: 6, color: "#bae6fd", fontSize: 13 }}>
                   <div>
+                    <input
+                      type="checkbox"
+                      checked={selectedPolicyIds.includes(item.id)}
+                      disabled={Boolean(loadingAction)}
+                      onChange={() => togglePolicySelected(item.id)}
+                      style={{ marginRight: 8 }}
+                    />
                     {item.plugin_id} / {item.task_type} ｜链路 {item.model_chain || "-"} ｜禁用{" "}
                     {item.disabled_models || "-"}
                   </div>

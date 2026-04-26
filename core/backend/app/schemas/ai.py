@@ -70,6 +70,10 @@ class AIRoutePolicyDeleteRequest(BaseModel):
     id: str
 
 
+class AIRoutePolicyBatchDeleteRequest(BaseModel):
+    ids: list[str]
+
+
 class AIBillingRecordItem(BaseModel):
     id: str
     plugin_id: str

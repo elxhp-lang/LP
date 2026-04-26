@@ -196,6 +196,37 @@ def test_ai_route_policy_delete():
     assert all(item["id"] != policy_id for item in listing.json()["items"])
 
 
+def test_ai_route_policy_batch_delete():
+    tenant = f"test-tenant-ai-{uuid4()}"
+    headers = {"x-tenant-id": tenant}
+    ids: list[str] = []
+    for i in range(3):
+        created = client.post(
+            "/api/v1/ai/route/policies",
+            headers=headers,
+            json={
+                "plugin_id": "plugin.translation.gpt",
+                "task_type": f"translate-{i}",
+                "model_chain": "a|b",
+                "disabled_models": "",
+            },
+        )
+        assert created.status_code == 200
+        ids.append(created.json()["id"])
+
+    deleted = client.post("/api/v1/ai/route/policies/delete-batch", headers=headers, json={"ids": ids[:2]})
+    assert deleted.status_code == 200
+    assert deleted.json()["ok"] is True
+    assert deleted.json()["deleted_count"] == 2
+
+    listing = client.get("/api/v1/ai/route/policies", headers=headers)
+    assert listing.status_code == 200
+    left_ids = {item["id"] for item in listing.json()["items"]}
+    assert ids[0] not in left_ids
+    assert ids[1] not in left_ids
+    assert ids[2] in left_ids
+
+
 def test_ai_route_circuit_breaker_skips_hot_failed_model(monkeypatch):
     tenant = f"test-tenant-ai-{uuid4()}"
     headers = {"x-tenant-id": tenant}
