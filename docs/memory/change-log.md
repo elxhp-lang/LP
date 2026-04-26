@@ -85,3 +85,12 @@
   - 更新 `frontend-ui-spec-v1.md`、`development-status.md` 待办勾选。
 - 变更原因：为超级 Agent、市场与工作流接入提供统一请求上下文，避免后期全量改接口。
 - 影响范围：所有带项目选择的 API 调用、联调文档、后续业务路由开发。
+
+### CHG-010：超级 Agent v1 骨架（推荐 + preflight）与对话页联调
+- 变更内容：
+  - 后端：`app/schemas/agent.py`、`app/services/agent_recommend.py`（规则引擎，两枚 MVP 插件目录）、`app/api/routes/agent.py`（`recommend` / `preflight`）；`main.py` 挂载路由。
+  - 测试：`tests/test_agent_api.py`。
+  - 前端：`web/app/chat/page.tsx` 调用 `apiPost`，展示推荐结果与 preflight JSON。
+  - 文档：`frontend-ui-spec-v1.md` §6.1 矩阵；`development-status.md` 进度与验证条数。
+- 变更原因：落实「轻核心 + 插件 + 超级 Agent」路线，先固定 API 契约与 UI 闭环，便于后续替换为 LLM 与市场检索而不改前端集成点。
+- 影响范围：对话模式、运行前闸门扩展、OpenAPI `/api/v1/agent/*`。

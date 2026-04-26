@@ -149,6 +149,8 @@
 | 项目列表 | GET | `/api/v1/projects` | - | 顶栏下拉 |
 | 创建项目 | POST | `/api/v1/projects` | name, description? | 刷新列表并选中 |
 | 项目详情 | GET | `/api/v1/projects/{project_id}` | - | 详情页预留 |
+| 对话推荐（规则引擎） | POST | `/api/v1/agent/recommend` | `message` | `/chat` 展示意图摘要、插件卡、工作流草案 |
+| 运行前检查（占位） | POST | `/api/v1/agent/preflight` | `plugin_ids` | MVP 恒 `allowed: true`，后续接计费/RBAC |
 
 ### 6.2 预留接口（命名空间建议）
 
