@@ -103,3 +103,12 @@
   - 文档：`frontend-ui-spec-v1.md` §6.1；`development-status.md`（含业务方说明）；本条目。
 - 变更原因：落实路线图「先存储与只读可视化，再拖拽与执行」，并与 Agent 草案结构对齐，减少后续改契约成本。
 - 影响范围：SQLite 需 `init_db()` 建新表；OpenAPI 新增 `/api/v1/workflows/*`。
+
+### CHG-012：插件市场 MVP（目录 API + 市场页安装）
+- 变更内容：
+  - 后端：`app/services/marketplace_catalog.py`（与 MVP 插件 ID 对齐的静态目录）、`app/schemas/marketplace.py`、`app/api/routes/marketplace.py`；`GET /api/v1/marketplace/plugins`、`GET /api/v1/marketplace/plugins/{plugin_id}`；`main.py` 挂载路由。
+  - 测试：`tests/test_marketplace_api.py`。
+  - 前端：`/market` 拉取目录、展示卡片、`安装到租户` 调用既有 `POST /api/v1/plugins/install`；链到插件控制台。
+  - 文档：`frontend-ui-spec-v1.md` §6；`development-status.md`。
+- 变更原因：打通「发现插件 → 安装 → 控制台配置」演示路径；上架/计费仍后置，避免一次引入过多表结构。
+- 影响范围：OpenAPI `/api/v1/marketplace/*`；与 `PluginLoader` 已知 `plugin_id` 保持一致。

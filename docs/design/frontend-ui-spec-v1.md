@@ -154,13 +154,15 @@
 | 工作流列表 | GET | `/api/v1/workflows` | Query：`project_id?` | `/workflow` 左侧列表；未选项目则列租户全部 |
 | 工作流创建 | POST | `/api/v1/workflows` | `name`, `description?`, `project_id?`, `steps[]` | 对话页「保存为工作流」；未传 `project_id` 时用 Header 上下文 |
 | 工作流详情 | GET | `/api/v1/workflows/{workflow_id}` | - | 详情与只读步骤（预留扩展 GET 列表已含 definition） |
+| 市场目录 | GET | `/api/v1/marketplace/plugins` | - | `/market` 卡片列表 |
+| 市场详情 | GET | `/api/v1/marketplace/plugins/{plugin_id}` | - | 详情页预留（当前可与列表同屏展示） |
 
 ### 6.2 预留接口（命名空间建议）
 
 | 能力 | 建议前缀 | UI 依赖 |
 |------|-----------|---------|
 | 超级 Agent 对话 | `/api/v1/agent/*` | 对话页、推荐卡 |
-| 插件市场 | `/api/v1/marketplace/*` | 市场列表、详情 |
+| 插件市场 | `/api/v1/marketplace/*` | 市场列表、详情（**MVP：目录 + 详情路由已提供，上架/订单后续接**） |
 | 工作流 | `/api/v1/workflows/*` | 画布、步骤条 |
 | 项目 | `/api/v1/projects/*` | 顶栏项目切换 |
 | 计费/订单 | `/api/v1/billing/*` | 充值、购买按钮状态 |
