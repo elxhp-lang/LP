@@ -25,3 +25,5 @@ class PermissionCheckRequest(BaseModel):
 class PluginResponse(BaseModel):
     plugin_id: str
     status: str
+    lifecycle_events: list[str] | None = None
+    output: dict | None = None

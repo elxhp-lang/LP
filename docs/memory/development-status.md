@@ -29,7 +29,7 @@
 | 领域 | 状态 | 说明 |
 |------|------|------|
 | 后端骨架 | 可用 | FastAPI：认证、插件 install/configure/use/uninstall、AI 路由占位、健康检查 |
-| 插件生态 MVP | 可用 | SDK、TS 模板、两个示例插件、沙箱脚本、权限隔离演示 |
+| 插件生态 MVP | 可用 | SDK、TS 模板、两个示例插件、沙箱脚本、权限隔离演示；`/plugins/use` 已返回 `lifecycle_events`，且 `api_name=ai:invoke` 可回传网关输出 |
 | 项目（租户下） | 可用 | `GET/POST /api/v1/projects`、`GET /api/v1/projects/{id}`；表 `projects` |
 | Web 壳层 | 可用 | 全局 Design Token、`AppShell` 顶栏、项目下拉与新建、`/dashboard/plugins` 科技风控制台（含 **AI 网关试调** → `/api/v1/ai/invoke`） |
 | 项目请求上下文 | 可用 | 可选 Header `x-project-id`；中间件校验租户归属；`GET /api/v1/context`；前端 `apiGet`/`apiPost` 自动带头 |
@@ -44,7 +44,7 @@
 ### 最近一次自动化验证（由开发侧执行，非业务方操作）
 
 - 命令：`cd core/backend && .venv\Scripts\python -m pytest -q`  
-- 结果：**20 passed**（含 AI 网关、市场、工作流、Agent、context、projects、插件等）  
+- 结果：**22 passed**（含插件 use 联动 AI 网关、AI 网关、市场、工作流、Agent、context、projects 等）  
 - 健康检查：`GET http://127.0.0.1:8000/health` → **200**（需本地已启动后端）  
 
 > **数据库说明**：若在增加 `projects` 表之前已有 `lp.db`，需**重启后端**或确保启动时执行 `init_db()`，以便 SQLite `create_all` 创建新表。
@@ -102,3 +102,4 @@
 | 2026-04-26 | 市场：`/api/v1/marketplace/plugins`、`/market` 联调安装；`pytest` 17 passed |
 | 2026-04-26 | AI 网关：`openai_compatible` + 环境变量、`core/backend/.env.example`；`pytest` 20 passed |
 | 2026-04-26 | 插件控制台：「AI 网关试调」按钮联调 `POST /api/v1/ai/invoke` |
+| 2026-04-26 | 插件 API：`/plugins/use` 返回 `lifecycle_events`，`api_name=ai:invoke` 时带 `output`；`pytest` 22 passed |

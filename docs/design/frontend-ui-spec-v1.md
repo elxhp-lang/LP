@@ -144,7 +144,7 @@
 | 注册 | POST | `/api/v1/auth/register` | email, password, display_name | 跳转或登录 |
 | 插件安装 | POST | `/api/v1/plugins/install` | plugin_id, version | 状态徽章「已安装」 |
 | 插件配置 | POST | `/api/v1/plugins/configure` | plugin_id, config | 「已配置」 |
-| 插件使用 | POST | `/api/v1/plugins/use` | plugin_id, action, api_name? | 「运行中」+ JSON |
+| 插件使用 | POST | `/api/v1/plugins/use` | plugin_id, action, api_name? | 「运行中」+ JSON（返回 `lifecycle_events`；`api_name=ai:invoke` 时带 `output`） |
 | 插件卸载 | POST | `/api/v1/plugins/uninstall/{plugin_id}` | - | 「已卸载」 |
 | 项目列表 | GET | `/api/v1/projects` | - | 顶栏下拉 |
 | 创建项目 | POST | `/api/v1/projects` | name, description? | 刷新列表并选中 |

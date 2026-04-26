@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request
 
+from app.schemas.ai import AIInvokeRequest
 from app.schemas.plugin import (
     ConfigurePluginRequest,
     InstallPluginRequest,
@@ -7,6 +8,7 @@ from app.schemas.plugin import (
     PluginResponse,
     UsePluginRequest,
 )
+from app.services.ai_gateway import invoke_model
 from app.services.plugin_loader import PluginLoader
 
 router = APIRouter()
@@ -17,7 +19,11 @@ plugin_loader = PluginLoader()
 def install_plugin(payload: InstallPluginRequest, request: Request):
     _ = request.state.tenant_id
     runtime = plugin_loader.load_plugin(payload.plugin_id, payload.version)
-    return PluginResponse(plugin_id=runtime.plugin_id, status="installed")
+    return PluginResponse(
+        plugin_id=runtime.plugin_id,
+        status="installed",
+        lifecycle_events=runtime.lifecycle_events,
+    )
 
 
 @router.post("/uninstall/{plugin_id}", response_model=PluginResponse)
@@ -33,7 +39,11 @@ def configure_plugin(payload: ConfigurePluginRequest, request: Request):
     if not plugin_loader.has_plugin(payload.plugin_id):
         raise HTTPException(status_code=404, detail=f"plugin '{payload.plugin_id}' is not installed")
     runtime = plugin_loader.configure_plugin(payload.plugin_id, payload.config)
-    return PluginResponse(plugin_id=runtime.plugin_id, status=runtime.status)
+    return PluginResponse(
+        plugin_id=runtime.plugin_id,
+        status=runtime.status,
+        lifecycle_events=runtime.lifecycle_events,
+    )
 
 
 @router.post("/use", response_model=PluginResponse)
@@ -41,13 +51,31 @@ def use_plugin(payload: UsePluginRequest, request: Request):
     _ = request.state.tenant_id
     if not plugin_loader.has_plugin(payload.plugin_id):
         raise HTTPException(status_code=404, detail=f"plugin '{payload.plugin_id}' is not installed")
+    runtime = plugin_loader.get_runtime(payload.plugin_id)
+    if runtime is None:
+        raise HTTPException(status_code=404, detail=f"plugin '{payload.plugin_id}' is not installed")
+
+    ai_output = None
     if payload.api_name:
         try:
             plugin_loader.call_api(payload.plugin_id, payload.api_name)
         except PermissionError as exc:
             raise HTTPException(status_code=403, detail=str(exc)) from exc
+        if payload.api_name == "ai:invoke":
+            ai_output = invoke_model(
+                AIInvokeRequest(
+                    plugin_id=payload.plugin_id,
+                    task_type=payload.action,
+                    payload=runtime.config,
+                ),
+            )
     runtime = plugin_loader.use_plugin(payload.plugin_id, payload.action)
-    return PluginResponse(plugin_id=runtime.plugin_id, status=runtime.status)
+    return PluginResponse(
+        plugin_id=runtime.plugin_id,
+        status=runtime.status,
+        lifecycle_events=runtime.lifecycle_events,
+        output=ai_output,
+    )
 
 
 @router.post("/permission-check")

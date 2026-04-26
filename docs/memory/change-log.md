@@ -127,3 +127,12 @@
 - 变更内容：`web/app/dashboard/plugins/page.tsx` 每插件卡片增加 **AI 网关试调**，`apiPost` 调用 `POST /api/v1/ai/invoke`（payload 含当前配置与示例文案/品类）；顶部说明与后端 `AI_*` 环境变量对齐；更新 `development-status.md`、`frontend-ui-spec-v1.md` 页面地图。
 - 变更原因：打通「安装/配置 → 核心调度」演示路径，无需额外页面即可验证 stub 或远程模型。
 - 影响范围：仅前端交互；不改变插件生命周期 API。
+
+
+### CHG-015：插件使用接口联动 AI 网关（MVP）
+- 变更内容：
+  - 后端：`POST /api/v1/plugins/use` 在 `api_name=ai:invoke` 且权限通过时，调用 `invoke_model`；响应 `PluginResponse` 新增 `lifecycle_events` 与可选 `output`。
+  - 测试：新增 `tests/test_plugins_api.py` 覆盖 install/configure/use 联动与权限拒绝。
+  - 文档：`development-status.md`、`frontend-ui-spec-v1.md` 交互矩阵。
+- 变更原因：让「插件使用」不仅改状态，也返回可观察的调度结果，便于示例插件走向真实能力。
+- 影响范围：`/api/v1/plugins/*` 响应结构向前扩展（新增字段，不破坏旧调用）。
