@@ -42,6 +42,13 @@ type AIRoutePolicy = {
   updated_at: string;
 };
 
+type RoutePolicySubmitResult = {
+  id: string;
+  plugin_id: string;
+  task_type: string;
+  updated_at: string;
+};
+
 const demoPlugins: PluginRow[] = [
   {
     id: "plugin.translation.gpt",
@@ -81,6 +88,7 @@ export default function PluginDashboardPage() {
     disabled_models: "",
   });
   const [routePolicyError, setRoutePolicyError] = useState<string>("");
+  const [lastRoutePolicySubmit, setLastRoutePolicySubmit] = useState<RoutePolicySubmitResult | null>(null);
 
   const actionHint = useMemo(() => {
     if (!loadingAction) {
@@ -233,6 +241,9 @@ export default function PluginDashboardPage() {
     setLoadingAction("新增 AI 路由策略");
     const result = await apiPost("/api/v1/ai/route/policies", newRoutePolicy);
     setLastResult(result);
+    if (result.ok && result.data && typeof result.data === "object" && "id" in result.data) {
+      setLastRoutePolicySubmit(result.data as RoutePolicySubmitResult);
+    }
     const now = new Date().toLocaleTimeString("zh-CN", { hour12: false });
     setActivityLogs((prev) => [`[${now}] 新增路由策略 -> ${result.ok ? "成功" : "失败"}`, ...prev].slice(0, 8));
     void refreshAiOpsPanels();
@@ -633,6 +644,22 @@ export default function PluginDashboardPage() {
             </button>
             {routePolicyError ? (
               <p style={{ margin: 0, color: "#fda4af", fontSize: 12 }}>{routePolicyError}</p>
+            ) : null}
+            {lastRoutePolicySubmit ? (
+              <div
+                style={{
+                  marginTop: 2,
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  border: "1px solid rgba(56,189,248,0.35)",
+                  background: "rgba(2,6,23,0.8)",
+                  color: "#bae6fd",
+                  fontSize: 12,
+                }}
+              >
+                最近提交：ID {lastRoutePolicySubmit.id} ｜{lastRoutePolicySubmit.plugin_id} /{" "}
+                {lastRoutePolicySubmit.task_type} ｜更新时间 {lastRoutePolicySubmit.updated_at || "-"}
+              </div>
             ) : null}
           </div>
         </section>
