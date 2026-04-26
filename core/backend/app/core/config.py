@@ -27,6 +27,7 @@ class AISettings:
     fallback_models: tuple[str, ...]
     route_block_window_sec: int
     route_block_threshold: int
+    unit_price: int
 
 
 def get_ai_settings() -> AISettings:
@@ -43,6 +44,7 @@ def get_ai_settings() -> AISettings:
     fallback_models = tuple(x.strip() for x in fallback_models_raw.split(",") if x.strip())
     route_block_window_sec = int((os.environ.get("AI_ROUTE_BLOCK_WINDOW_SEC") or "600").strip())
     route_block_threshold = int((os.environ.get("AI_ROUTE_BLOCK_THRESHOLD") or "3").strip())
+    unit_price = int((os.environ.get("AI_UNIT_PRICE") or "1").strip())
     return AISettings(
         provider=(os.environ.get("AI_PROVIDER") or "stub").lower().strip(),
         api_key=os.environ.get("AI_API_KEY") or None,
@@ -52,4 +54,5 @@ def get_ai_settings() -> AISettings:
         fallback_models=fallback_models,
         route_block_window_sec=max(60, route_block_window_sec),
         route_block_threshold=max(1, route_block_threshold),
+        unit_price=max(1, unit_price),
     )

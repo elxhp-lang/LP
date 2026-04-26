@@ -280,3 +280,13 @@
   - 新增测试覆盖策略覆盖与熔断生效场景。
 - 变更原因：让路由策略可针对业务租户精细化控制，并在模型抖动时自动规避热点失败模型。
 - 影响范围：后端 AI 路由与审计联动增强；文档补充管理侧路由策略接口。
+
+### CHG-032：AI 用量计费联动（v1）
+- 变更内容：
+  - AI 配置新增 `AI_UNIT_PRICE`（每 unit 扣减金额，默认 1）。
+  - `/api/v1/ai/invoke` 在远程调用成功后，按估算 `units * AI_UNIT_PRICE` 扣减租户钱包余额。
+  - 钱包余额不足时，调用结果改为失败并返回 `billing_next_action=topup_required`、`required_amount`、`wallet_balance`。
+  - 成功扣费时返回 `billed_units`、`billed_amount`、`wallet_balance` 供前端展示与排障。
+  - 新增测试覆盖“扣费成功”和“余额不足”两条链路，并兼容现有路由/熔断测试。
+- 变更原因：把 AI 调用从“可观测”推进到“可计费”，形成用量到资金的闭环。
+- 影响范围：后端 AI 与 billing 数据联动增强；前端可按返回字段提示充值动作。

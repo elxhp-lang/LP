@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_ai_settings
 from app.db.session import get_db
 from app.models.ai_usage import AIAuditLog, AIQuota, AIRoutePolicy, AIUsageEvent
+from app.models.billing import Wallet
 from app.schemas.ai import (
     AIAuditLogItem,
     AIAuditLogListResponse,
@@ -43,6 +44,17 @@ def _ensure_quota(db: Session, tenant_id: str) -> AIQuota:
     db.commit()
     db.refresh(quota)
     return quota
+
+
+def _ensure_wallet(db: Session, tenant_id: str) -> Wallet:
+    wallet = db.scalar(select(Wallet).where(Wallet.tenant_id == tenant_id))
+    if wallet:
+        return wallet
+    wallet = Wallet(tenant_id=tenant_id, balance=0)
+    db.add(wallet)
+    db.commit()
+    db.refresh(wallet)
+    return wallet
 
 
 def _estimate_units(payload: AIInvokeRequest, result: dict) -> int:
@@ -110,7 +122,32 @@ def invoke_ai(payload: AIInvokeRequest, request: Request, db: Session = Depends(
         blocked_models.update(_parse_models(policy.disabled_models))
     result = invoke_model(payload, preferred_chain=preferred_chain, blocked_models=blocked_models)
     output = result.get("output", {})
+    billed_units = _estimate_units(payload, result)
+    cfg = get_ai_settings()
+    billed_amount = billed_units * cfg.unit_price
+    wallet = _ensure_wallet(db, tenant_id)
+
     status = "failed" if any(k in output for k in ("error", "status_code")) else "success"
+    should_bill = status == "success" and str(result.get("provider", "stub")) != "stub"
+    if should_bill:
+        if wallet.balance < billed_amount:
+            result["output"] = {
+                "message": "ai quota billing failed: wallet balance is insufficient",
+                "pluginId": payload.plugin_id,
+                "taskType": payload.task_type,
+                "error": "insufficient wallet balance",
+                "billing_next_action": "topup_required",
+                "required_amount": billed_amount,
+                "wallet_balance": wallet.balance,
+            }
+            output = result["output"]
+            status = "failed"
+        else:
+            wallet.balance -= billed_amount
+            db.add(wallet)
+            output["billed_units"] = billed_units
+            output["billed_amount"] = billed_amount
+            output["wallet_balance"] = wallet.balance
     request_preview = json.dumps(payload.payload, ensure_ascii=False)[:1000]
     route_chain = result.get("route_chain")
     route_preview = ""
@@ -123,7 +160,7 @@ def invoke_ai(payload: AIInvokeRequest, request: Request, db: Session = Depends(
         tenant_id=tenant_id,
         plugin_id=payload.plugin_id,
         task_type=payload.task_type,
-        units=_estimate_units(payload, result),
+        units=billed_units,
         status=status,
     )
     route_errors = result.get("route_errors", [])

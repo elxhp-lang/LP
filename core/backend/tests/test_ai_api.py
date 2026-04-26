@@ -29,6 +29,7 @@ def test_ai_invoke_stub_by_default():
 
 def test_ai_openai_compatible_mocked(monkeypatch):
     tenant = f"test-tenant-ai-{uuid4()}"
+    headers = {"x-tenant-id": tenant}
     monkeypatch.setenv("AI_PROVIDER", "openai_compatible")
     monkeypatch.setenv("AI_API_KEY", "sk-test")
     monkeypatch.setenv("AI_BASE_URL", "https://api.example.com")
@@ -42,10 +43,11 @@ def test_ai_openai_compatible_mocked(monkeypatch):
         return mock_resp
 
     monkeypatch.setattr("app.services.ai_gateway.httpx.post", fake_post)
+    client.post("/api/v1/billing/wallet/topup", headers=headers, json={"amount": 200})
 
     r = client.post(
         "/api/v1/ai/invoke",
-        headers={"x-tenant-id": tenant},
+        headers=headers,
         json={
             "plugin_id": "plugin.translation.gpt",
             "task_type": "translate",
@@ -178,6 +180,7 @@ def test_ai_route_circuit_breaker_skips_hot_failed_model(monkeypatch):
     monkeypatch.setenv("AI_MODEL", "safe-model")
     monkeypatch.setenv("AI_ROUTE_BLOCK_THRESHOLD", "2")
     monkeypatch.setenv("AI_ROUTE_BLOCK_WINDOW_SEC", "3600")
+    client.post("/api/v1/billing/wallet/topup", headers=headers, json={"amount": 1000})
 
     # Create 2 failed logs for bad-model via policy + forced failures.
     client.post(
@@ -275,6 +278,54 @@ def test_ai_usage_summary_and_quota_update():
     updated = client.post("/api/v1/ai/quota", headers=headers, json={"quota_units": 50})
     assert updated.status_code == 200
     assert updated.json()["quota_units"] == 50
+
+
+def test_ai_invoke_deducts_wallet_balance(monkeypatch):
+    tenant = f"test-tenant-ai-{uuid4()}"
+    headers = {"x-tenant-id": tenant}
+    monkeypatch.setenv("AI_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("AI_API_KEY", "sk-test")
+    monkeypatch.setenv("AI_BASE_URL", "https://api.example.com")
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"choices": [{"message": {"content": "billing check ok"}}]}
+    monkeypatch.setattr("app.services.ai_gateway.httpx.post", lambda *args, **kwargs: mock_resp)
+    client.post("/api/v1/billing/wallet/topup", headers=headers, json={"amount": 200})
+    before_wallet = client.get("/api/v1/billing/wallet", headers=headers).json()["balance"]
+
+    r = client.post(
+        "/api/v1/ai/invoke",
+        headers=headers,
+        json={"plugin_id": "plugin.translation.gpt", "task_type": "translate", "payload": {"text": "billing check"}},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert "billed_amount" in body["output"]
+    assert body["output"]["billed_amount"] >= 1
+
+    after_wallet = client.get("/api/v1/billing/wallet", headers=headers).json()["balance"]
+    assert before_wallet - after_wallet == body["output"]["billed_amount"]
+
+
+def test_ai_invoke_insufficient_balance_requires_topup(monkeypatch):
+    tenant = f"test-tenant-ai-{uuid4()}"
+    headers = {"x-tenant-id": tenant}
+    monkeypatch.setenv("AI_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("AI_API_KEY", "sk-test")
+    monkeypatch.setenv("AI_BASE_URL", "https://api.example.com")
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"choices": [{"message": {"content": "need topup"}}]}
+    monkeypatch.setattr("app.services.ai_gateway.httpx.post", lambda *args, **kwargs: mock_resp)
+    r = client.post(
+        "/api/v1/ai/invoke",
+        headers=headers,
+        json={"plugin_id": "plugin.translation.gpt", "task_type": "translate", "payload": {"text": "need topup"}},
+    )
+    assert r.status_code == 200
+    output = r.json()["output"]
+    assert output["billing_next_action"] == "topup_required"
+    assert "insufficient" in output["error"]
 
 
 def test_ai_audit_logs_list():

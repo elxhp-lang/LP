@@ -170,7 +170,7 @@
 | 支付安装完成提示 | GET（前端路由参数） | `/chat?flow_ready=1` | - | 聊天页显示“已就绪可执行”提示 |
 | 推荐流程执行（前端编排） | POST（逐步） | `/api/v1/plugins/use` | `plugin_id`,`action`,`api_name=ai:invoke` | 聊天页“一键运行推荐流程”逐步执行并显示日志 |
 | 执行摘要卡（前端状态） | localStorage | `lp_last_flow_run_summary` | - | 聊天页展示最近一次执行成功/失败统计 |
-| AI 调度 | POST | `/api/v1/ai/invoke` | `plugin_id`, `task_type`, `payload` | 插件/内部调用；后端按 `AI_PROVIDER` + `AI_TASK_MODEL_MAP` 命中候选模型链路，失败自动降级到 `AI_MODEL` 与 `AI_FALLBACK_MODELS` |
+| AI 调度 | POST | `/api/v1/ai/invoke` | `plugin_id`, `task_type`, `payload` | 插件/内部调用；后端按路由策略选模型并执行。远程调用成功后按 units 扣减钱包，余额不足返回 `topup_required` |
 | AI 用量摘要 | GET | `/api/v1/ai/usage/summary` | - | 聊天页显示当月配额、已用量、成功/失败调用次数 |
 | AI 配额设置（占位） | POST | `/api/v1/ai/quota` | `quota_units` | 管理侧可调整租户月度配额（MVP 直接接口） |
 | AI 审计日志 | GET | `/api/v1/ai/audit/logs` | Query: `offset?`,`limit?` | 聊天页展示最近调用记录（状态/错误摘要） |
