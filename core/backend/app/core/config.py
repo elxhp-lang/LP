@@ -28,6 +28,7 @@ class AISettings:
     route_block_window_sec: int
     route_block_threshold: int
     unit_price: int
+    plugin_unit_price_map: Mapping[str, int]
 
 
 def get_ai_settings() -> AISettings:
@@ -45,6 +46,18 @@ def get_ai_settings() -> AISettings:
     route_block_window_sec = int((os.environ.get("AI_ROUTE_BLOCK_WINDOW_SEC") or "600").strip())
     route_block_threshold = int((os.environ.get("AI_ROUTE_BLOCK_THRESHOLD") or "3").strip())
     unit_price = int((os.environ.get("AI_UNIT_PRICE") or "1").strip())
+    plugin_price_raw = (os.environ.get("AI_PLUGIN_UNIT_PRICE_MAP") or "").strip()
+    plugin_unit_price_map: dict[str, int] = {}
+    if plugin_price_raw:
+        for pair in plugin_price_raw.split(","):
+            left, _, right = pair.partition(":")
+            plugin_id = left.strip()
+            try:
+                price = int(right.strip())
+            except ValueError:
+                continue
+            if plugin_id and price > 0:
+                plugin_unit_price_map[plugin_id] = price
     return AISettings(
         provider=(os.environ.get("AI_PROVIDER") or "stub").lower().strip(),
         api_key=os.environ.get("AI_API_KEY") or None,
@@ -55,4 +68,5 @@ def get_ai_settings() -> AISettings:
         route_block_window_sec=max(60, route_block_window_sec),
         route_block_threshold=max(1, route_block_threshold),
         unit_price=max(1, unit_price),
+        plugin_unit_price_map=plugin_unit_price_map,
     )

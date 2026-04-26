@@ -64,3 +64,22 @@ class AIRoutePolicyItem(BaseModel):
 
 class AIRoutePolicyListResponse(BaseModel):
     items: list[AIRoutePolicyItem]
+
+
+class AIBillingRecordItem(BaseModel):
+    id: str
+    plugin_id: str
+    task_type: str
+    billed_units: int
+    unit_price: int
+    billed_amount: int
+    status: str
+    reason: str
+    wallet_balance_after: int
+    created_at: str
+
+
+class AIBillingRecordListResponse(BaseModel):
+    items: list[AIBillingRecordItem]
+    offset: int
+    limit: int

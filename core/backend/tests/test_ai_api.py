@@ -307,6 +307,31 @@ def test_ai_invoke_deducts_wallet_balance(monkeypatch):
     assert before_wallet - after_wallet == body["output"]["billed_amount"]
 
 
+def test_ai_invoke_plugin_specific_unit_price(monkeypatch):
+    tenant = f"test-tenant-ai-{uuid4()}"
+    headers = {"x-tenant-id": tenant}
+    monkeypatch.setenv("AI_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("AI_API_KEY", "sk-test")
+    monkeypatch.setenv("AI_BASE_URL", "https://api.example.com")
+    monkeypatch.setenv("AI_UNIT_PRICE", "1")
+    monkeypatch.setenv("AI_PLUGIN_UNIT_PRICE_MAP", "plugin.translation.gpt:3")
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"choices": [{"message": {"content": "price map"}}]}
+    monkeypatch.setattr("app.services.ai_gateway.httpx.post", lambda *args, **kwargs: mock_resp)
+    client.post("/api/v1/billing/wallet/topup", headers=headers, json={"amount": 200})
+
+    r = client.post(
+        "/api/v1/ai/invoke",
+        headers=headers,
+        json={"plugin_id": "plugin.translation.gpt", "task_type": "translate", "payload": {"text": "price map"}},
+    )
+    assert r.status_code == 200
+    output = r.json()["output"]
+    assert output["unit_price"] == 3
+    assert output["billed_amount"] == output["billed_units"] * 3
+
+
 def test_ai_invoke_insufficient_balance_requires_topup(monkeypatch):
     tenant = f"test-tenant-ai-{uuid4()}"
     headers = {"x-tenant-id": tenant}
@@ -326,6 +351,34 @@ def test_ai_invoke_insufficient_balance_requires_topup(monkeypatch):
     output = r.json()["output"]
     assert output["billing_next_action"] == "topup_required"
     assert "insufficient" in output["error"]
+
+
+def test_ai_billing_records_list(monkeypatch):
+    tenant = f"test-tenant-ai-{uuid4()}"
+    headers = {"x-tenant-id": tenant}
+    monkeypatch.setenv("AI_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("AI_API_KEY", "sk-test")
+    monkeypatch.setenv("AI_BASE_URL", "https://api.example.com")
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"choices": [{"message": {"content": "billing records"}}]}
+    monkeypatch.setattr("app.services.ai_gateway.httpx.post", lambda *args, **kwargs: mock_resp)
+    client.post("/api/v1/billing/wallet/topup", headers=headers, json={"amount": 200})
+    client.post(
+        "/api/v1/ai/invoke",
+        headers=headers,
+        json={"plugin_id": "plugin.translation.gpt", "task_type": "translate", "payload": {"text": "records"}},
+    )
+
+    records = client.get("/api/v1/ai/billing/records?offset=0&limit=5", headers=headers)
+    assert records.status_code == 200
+    body = records.json()
+    assert body["offset"] == 0
+    assert body["limit"] == 5
+    assert len(body["items"]) >= 1
+    first = body["items"][0]
+    assert first["plugin_id"] == "plugin.translation.gpt"
+    assert first["status"] in ("charged", "failed")
 
 
 def test_ai_audit_logs_list():

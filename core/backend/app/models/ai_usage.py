@@ -62,3 +62,19 @@ class AIRoutePolicy(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
+
+
+class AIBillingRecord(Base):
+    __tablename__ = "ai_billing_records"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    tenant_id: Mapped[str] = mapped_column(String(36), index=True)
+    plugin_id: Mapped[str] = mapped_column(String(200), index=True)
+    task_type: Mapped[str] = mapped_column(String(120))
+    billed_units: Mapped[int] = mapped_column(Integer, default=0)
+    unit_price: Mapped[int] = mapped_column(Integer, default=1)
+    billed_amount: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(20), default="charged")
+    reason: Mapped[str] = mapped_column(String(500), default="")
+    wallet_balance_after: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), server_default=func.now(), index=True)

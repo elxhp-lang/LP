@@ -8,11 +8,13 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_ai_settings
 from app.db.session import get_db
-from app.models.ai_usage import AIAuditLog, AIQuota, AIRoutePolicy, AIUsageEvent
+from app.models.ai_usage import AIAuditLog, AIBillingRecord, AIQuota, AIRoutePolicy, AIUsageEvent
 from app.models.billing import Wallet
 from app.schemas.ai import (
     AIAuditLogItem,
     AIAuditLogListResponse,
+    AIBillingRecordItem,
+    AIBillingRecordListResponse,
     AIInvokeRequest,
     AIInvokeResponse,
     AIQuotaUpdateRequest,
@@ -124,7 +126,8 @@ def invoke_ai(payload: AIInvokeRequest, request: Request, db: Session = Depends(
     output = result.get("output", {})
     billed_units = _estimate_units(payload, result)
     cfg = get_ai_settings()
-    billed_amount = billed_units * cfg.unit_price
+    unit_price = cfg.plugin_unit_price_map.get(payload.plugin_id, cfg.unit_price)
+    billed_amount = billed_units * unit_price
     wallet = _ensure_wallet(db, tenant_id)
 
     status = "failed" if any(k in output for k in ("error", "status_code")) else "success"
@@ -142,12 +145,39 @@ def invoke_ai(payload: AIInvokeRequest, request: Request, db: Session = Depends(
             }
             output = result["output"]
             status = "failed"
+            db.add(
+                AIBillingRecord(
+                    tenant_id=tenant_id,
+                    plugin_id=payload.plugin_id,
+                    task_type=payload.task_type,
+                    billed_units=billed_units,
+                    unit_price=unit_price,
+                    billed_amount=billed_amount,
+                    status="failed",
+                    reason="insufficient wallet balance",
+                    wallet_balance_after=wallet.balance,
+                )
+            )
         else:
             wallet.balance -= billed_amount
             db.add(wallet)
             output["billed_units"] = billed_units
+            output["unit_price"] = unit_price
             output["billed_amount"] = billed_amount
             output["wallet_balance"] = wallet.balance
+            db.add(
+                AIBillingRecord(
+                    tenant_id=tenant_id,
+                    plugin_id=payload.plugin_id,
+                    task_type=payload.task_type,
+                    billed_units=billed_units,
+                    unit_price=unit_price,
+                    billed_amount=billed_amount,
+                    status="charged",
+                    reason="ai invoke charge",
+                    wallet_balance_after=wallet.balance,
+                )
+            )
     request_preview = json.dumps(payload.payload, ensure_ascii=False)[:1000]
     route_chain = result.get("route_chain")
     route_preview = ""
@@ -313,6 +343,42 @@ def list_route_policies(request: Request, db: Session = Depends(get_db)):
             )
             for r in rows
         ]
+    )
+
+
+@router.get("/billing/records", response_model=AIBillingRecordListResponse)
+def list_billing_records(
+    request: Request,
+    db: Session = Depends(get_db),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=100),
+):
+    tenant_id = request.state.tenant_id
+    rows = db.scalars(
+        select(AIBillingRecord)
+        .where(AIBillingRecord.tenant_id == tenant_id)
+        .order_by(AIBillingRecord.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    ).all()
+    return AIBillingRecordListResponse(
+        items=[
+            AIBillingRecordItem(
+                id=r.id,
+                plugin_id=r.plugin_id,
+                task_type=r.task_type,
+                billed_units=r.billed_units,
+                unit_price=r.unit_price,
+                billed_amount=r.billed_amount,
+                status=r.status,
+                reason=r.reason,
+                wallet_balance_after=r.wallet_balance_after,
+                created_at=r.created_at.isoformat() if r.created_at else "",
+            )
+            for r in rows
+        ],
+        offset=offset,
+        limit=limit,
     )
 
 

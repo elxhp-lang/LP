@@ -121,3 +121,4 @@
 | 2026-04-26 | AI 路由 v2：支持候选链路 + 失败自动降级（`AI_FALLBACK_MODELS`），审计记录输出包含路由链路信息 |
 | 2026-04-26 | AI 路由 v3：新增租户级 `route/policies`（插件+任务覆盖）与熔断窗口（失败阈值临时屏蔽模型） |
 | 2026-04-26 | AI 计费联动 v1：远程 AI 成功调用按 units 扣钱包余额，余额不足返回 `topup_required` 并保留审计/用量记录 |
+| 2026-04-26 | AI 计费联动 v2：支持 `AI_PLUGIN_UNIT_PRICE_MAP` 插件差异单价，并新增 `/ai/billing/records` 计费明细查询 |

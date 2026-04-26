@@ -176,6 +176,7 @@
 | AI 审计日志 | GET | `/api/v1/ai/audit/logs` | Query: `offset?`,`limit?` | 聊天页展示最近调用记录（状态/错误摘要） |
 | AI 路由策略列表 | GET | `/api/v1/ai/route/policies` | - | 管理侧查看租户级插件/任务路由策略 |
 | AI 路由策略设置 | POST | `/api/v1/ai/route/policies` | `plugin_id`,`task_type`,`model_chain`,`disabled_models` | 管理侧覆盖路由链路并临时禁用模型 |
+| AI 计费明细 | GET | `/api/v1/ai/billing/records` | Query: `offset?`,`limit?` | 管理侧查看按调用生成的扣费流水（units/单价/金额/余额） |
 
 ### 6.2 预留接口（命名空间建议）
 
