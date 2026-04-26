@@ -172,3 +172,12 @@
   - 前端：`/chat` 将 preflight 结果结构化展示（可执行状态、原因、购买/充值标记）。
 - 变更原因：把「推荐→预检→执行」链路从文案占位提升到可执行闸门，减少误触发与无效执行。
 - 影响范围：Agent 预检行为从静态占位改为计费感知；响应契约字段不变。
+
+### CHG-020：支付/收款渠道接口骨架（支付宝/微信优先）
+- 变更内容：
+  - 计费 schema 新增支付/收款渠道模型与 `checkout` 契约，支付渠道含 `ALIPAY`、`WECHAT_PAY`（并保留 `WALLET`），收款渠道含 `ALIPAY`、`WECHAT_PAY`、`BANK_TRANSFER`。
+  - 新增 `GET /api/v1/billing/channels`、`POST /api/v1/billing/checkout`、`POST /api/v1/billing/checkout/confirm`。
+  - `/market/[pluginId]` 详情页新增渠道选择（支付宝/微信/钱包）并调用 `checkout`。
+  - 测试扩展：`tests/test_billing_api.py` 覆盖渠道查询、外部渠道 pending->confirm、钱包直付。
+- 变更原因：提前固定渠道抽象与订单接口，后续接真实支付宝/微信网关时只需替换实现层。
+- 影响范围：`/api/v1/billing/*` 接口扩展；`plugin_purchases.status` 引入 `pending/paid/failed` 流转。

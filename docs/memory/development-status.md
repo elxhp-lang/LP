@@ -38,14 +38,14 @@
 | 工作流持久化 v1 | 可用 | 表 `workflows`；`GET/POST /api/v1/workflows`、`GET /{id}`；定义 JSON `version`+`steps`；`/chat` 可保存草案 |
 | 插件市场 MVP | 可用 | 市场支持 `q/category/offset/limit` 搜索筛选分页、`GET /api/v1/marketplace/categories`、详情页与安装闭环 |
 | AI 网关 MVP | 可用 | `POST /api/v1/ai/invoke`：`stub`（默认）或 `openai_compatible`（`AI_*` 环境变量，兼容 DeepSeek/OpenAI 类接口） |
-| 计费/购买占位 | 可用 | `GET /api/v1/billing/wallet`、`POST /wallet/topup`、`GET /purchases`、`POST /purchase`；市场详情页可触发购买 |
+| 计费/购买占位 | 可用 | `wallet/topup/purchases/purchase` + `channels/checkout/checkout-confirm`；支付渠道优先含支付宝、微信，详情页可选渠道下单 |
 | 前端规范 | 草案 | `frontend-ui-spec-v1.md`，确认后可标为 frozen |
 | 自动化验证 | 已跑通 | 后端 `pytest`（含 projects API）；**接手后请在 `core/backend` 下定期执行** |
 
 ### 最近一次自动化验证（由开发侧执行，非业务方操作）
 
 - 命令：`cd core/backend && .venv\Scripts\python -m pytest -q`  
-- 结果：**29 passed**（含 Agent preflight 计费闸门、billing 钱包/购买、市场搜索/分类/分页、插件 use 联动 AI 网关、工作流、context、projects 等）  
+- 结果：**30 passed**（含支付渠道接口 ALIPAY/WECHAT、Agent preflight 计费闸门、billing 钱包/购买、市场搜索/分类/分页、插件 use 联动 AI 网关等）  
 - 健康检查：`GET http://127.0.0.1:8000/health` → **200**（需本地已启动后端）  
 
 > **数据库说明**：若在增加 `projects` 表之前已有 `lp.db`，需**重启后端**或确保启动时执行 `init_db()`，以便 SQLite `create_all` 创建新表。
@@ -108,3 +108,4 @@
 | 2026-04-26 | 市场扩展：`/market` 搜索/分类/分页；后端 `q/category/offset/limit` + `/categories`；`pytest` 25 passed |
 | 2026-04-26 | 计费占位：`/api/v1/billing/*`（wallet/topup/purchases/purchase），详情页新增购买按钮；`pytest` 27 passed |
 | 2026-04-26 | Agent preflight：按购买记录 + 余额判断 `allowed`，`/chat` 结构化展示结果；`pytest` 29 passed |
+| 2026-04-26 | 支付渠道接口：`/billing/channels`、`/checkout`、`/checkout/confirm`（支付宝/微信/钱包）；`pytest` 30 passed |

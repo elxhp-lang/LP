@@ -26,6 +26,7 @@ export default function MarketPluginDetailPage() {
   const [installing, setInstalling] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
   const [wallet, setWallet] = useState<number | null>(null);
+  const [payChannel, setPayChannel] = useState<"ALIPAY" | "WECHAT_PAY" | "WALLET">("ALIPAY");
   const [banner, setBanner] = useState<string | null>(null);
 
   useEffect(() => {
@@ -81,27 +82,42 @@ export default function MarketPluginDetailPage() {
     }
   };
 
-  const purchase = async () => {
+  const checkout = async () => {
     if (!detail) {
       return;
     }
     setPurchasing(true);
     setBanner(null);
-    const res = await apiPost("/api/v1/billing/purchase", {
+    const res = await apiPost("/api/v1/billing/checkout", {
       plugin_id: detail.plugin_id,
       amount: 99,
       currency: "CNY",
+      pay_channel: payChannel,
     });
     setPurchasing(false);
-    if (res.ok) {
+    if (!res.ok || !res.data || typeof res.data !== "object") {
+      setBanner(typeof res.message === "string" ? res.message : "下单失败");
+      return;
+    }
+    const data = res.data as {
+      status?: unknown;
+      next_action?: unknown;
+      pay_url?: unknown;
+    };
+    const status = typeof data.status === "string" ? data.status : "unknown";
+    const nextAction = typeof data.next_action === "string" ? data.next_action : "";
+    const payUrl = typeof data.pay_url === "string" ? data.pay_url : "";
+    if (status === "pending" && payUrl) {
+      setBanner(`订单已创建，请在${payChannel === "ALIPAY" ? "支付宝" : "微信"}完成支付（占位链接）：${payUrl}`);
+    } else if (status === "paid") {
+      setBanner("已支付完成，可继续安装与配置插件。");
       const w = await apiGet("/api/v1/billing/wallet");
       if (w.ok && w.data && typeof w.data === "object") {
         const b = (w.data as { balance?: unknown }).balance;
         setWallet(typeof b === "number" ? b : wallet);
       }
-      setBanner(`购买记录已创建：${detail.name}（MVP 占位，后续接真实订单支付）。`);
     } else {
-      setBanner(typeof res.message === "string" ? res.message : "购买失败");
+      setBanner(`下单结果：${status}${nextAction ? `（${nextAction}）` : ""}`);
     }
   };
 
@@ -159,11 +175,27 @@ export default function MarketPluginDetailPage() {
           <p style={{ color: "var(--color-text-muted)", fontSize: 13, marginTop: 8 }}>
             余额（MVP）：{wallet === null ? "加载中…" : `${wallet} CNY`}
           </p>
-          <div style={{ display: "flex", gap: "var(--space-sm)", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "var(--space-sm)", flexWrap: "wrap", alignItems: "center" }}>
+            <select
+              value={payChannel}
+              onChange={(e) => setPayChannel(e.target.value as "ALIPAY" | "WECHAT_PAY" | "WALLET")}
+              style={{
+                padding: "10px 12px",
+                borderRadius: "var(--radius-control)",
+                border: "1px solid var(--color-border-subtle)",
+                background: "var(--color-code-bg)",
+                color: "var(--color-text-primary)",
+                marginTop: "var(--space-sm)",
+              }}
+            >
+              <option value="ALIPAY">支付宝</option>
+              <option value="WECHAT_PAY">微信支付</option>
+              <option value="WALLET">钱包余额</option>
+            </select>
             <button
               type="button"
               disabled={purchasing}
-              onClick={() => void purchase()}
+              onClick={() => void checkout()}
               style={{
                 padding: "10px 16px",
                 borderRadius: "var(--radius-control)",
@@ -174,7 +206,7 @@ export default function MarketPluginDetailPage() {
                 marginTop: "var(--space-sm)",
               }}
             >
-              {purchasing ? "购买中…" : "购买（占位）"}
+              {purchasing ? "下单中…" : "下单支付（占位）"}
             </button>
           <button
             type="button"

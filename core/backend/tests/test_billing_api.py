@@ -45,3 +45,58 @@ def test_purchase_and_list():
     r = client.get("/api/v1/billing/purchases", headers={"x-tenant-id": tenant})
     assert r.status_code == 200
     assert any(x["plugin_id"] == "plugin.translation.gpt" for x in r.json())
+
+
+def test_channels_checkout_and_confirm():
+    tenant = f"test-tenant-billing-{uuid4()}"
+    r = client.get("/api/v1/billing/channels", headers={"x-tenant-id": tenant})
+    assert r.status_code == 200
+    body = r.json()
+    assert "ALIPAY" in body["pay_channels"]
+    assert "WECHAT_PAY" in body["pay_channels"]
+    assert "ALIPAY" in body["payout_channels"]
+    assert "WECHAT_PAY" in body["payout_channels"]
+
+    # External channels create pending orders
+    r = client.post(
+        "/api/v1/billing/checkout",
+        headers={"x-tenant-id": tenant},
+        json={
+            "plugin_id": "plugin.market.analysis.composer",
+            "amount": 99,
+            "currency": "CNY",
+            "pay_channel": "ALIPAY",
+        },
+    )
+    assert r.status_code == 200
+    order = r.json()
+    assert order["status"] == "pending"
+    assert order["pay_channel"] == "ALIPAY"
+    assert isinstance(order["pay_url"], str)
+
+    r = client.post(
+        "/api/v1/billing/checkout/confirm",
+        headers={"x-tenant-id": tenant},
+        json={"order_id": order["order_id"], "paid": True, "provider_trade_no": "ali_trade_001"},
+    )
+    assert r.status_code == 200
+    assert r.json()["status"] == "paid"
+
+    # Wallet channel settles immediately
+    client.post(
+        "/api/v1/billing/wallet/topup",
+        headers={"x-tenant-id": tenant},
+        json={"amount": 120},
+    )
+    r = client.post(
+        "/api/v1/billing/checkout",
+        headers={"x-tenant-id": tenant},
+        json={
+            "plugin_id": "plugin.translation.gpt",
+            "amount": 60,
+            "currency": "CNY",
+            "pay_channel": "WALLET",
+        },
+    )
+    assert r.status_code == 200
+    assert r.json()["status"] == "paid"

@@ -159,8 +159,11 @@
 | 市场分类 | GET | `/api/v1/marketplace/categories` | - | `/market` 分类下拉 |
 | 市场详情 | GET | `/api/v1/marketplace/plugins/{plugin_id}` | - | `/market/[pluginId]` 详情页（案例 + 安装） |
 | 钱包余额 | GET | `/api/v1/billing/wallet` | - | 详情页展示余额 |
+| 支付/收款渠道 | GET | `/api/v1/billing/channels` | - | 展示可选支付渠道与收款渠道（MVP：支付宝/微信优先） |
 | 钱包充值（占位） | POST | `/api/v1/billing/wallet/topup` | `amount` | 余额变更（后续接真实支付） |
 | 创建购买记录（占位） | POST | `/api/v1/billing/purchase` | `plugin_id`, `amount`, `currency` | 购买按钮状态与提示 |
+| 创建支付订单 | POST | `/api/v1/billing/checkout` | `plugin_id`,`amount`,`currency`,`pay_channel` | 返回订单状态、下一步动作、收银台链接占位 |
+| 支付结果确认（回调占位） | POST | `/api/v1/billing/checkout/confirm` | `order_id`,`paid`,`provider_trade_no?` | 更新订单为 `paid/failed` |
 | 购买列表（占位） | GET | `/api/v1/billing/purchases` | - | 订单页预留 |
 | AI 调度 | POST | `/api/v1/ai/invoke` | `plugin_id`, `task_type`, `payload` | 插件/内部调用；后端按 `AI_PROVIDER` 走 stub 或 OpenAI 兼容接口 |
 
