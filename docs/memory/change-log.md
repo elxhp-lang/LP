@@ -136,3 +136,11 @@
   - 文档：`development-status.md`、`frontend-ui-spec-v1.md` 交互矩阵。
 - 变更原因：让「插件使用」不仅改状态，也返回可观察的调度结果，便于示例插件走向真实能力。
 - 影响范围：`/api/v1/plugins/*` 响应结构向前扩展（新增字段，不破坏旧调用）。
+
+### CHG-016：插件市场详情页（列表→详情→安装）
+- 变更内容：
+  - 前端新增 `web/app/market/[pluginId]/page.tsx`，调用 `GET /api/v1/marketplace/plugins/{plugin_id}` 展示描述、能力、案例与安装按钮。
+  - `web/app/market/page.tsx` 增加「查看详情」入口，形成列表到详情闭环。
+  - 文档：`frontend-ui-spec-v1.md` 页面地图与 API 矩阵、`development-status.md`。
+- 变更原因：把市场从单页列表扩展为基础信息架构（IA），为后续订单/搜索/筛选提供稳定详情入口。
+- 影响范围：前端新增动态路由 `/market/[pluginId]`；后端 API 复用既有市场详情接口。

@@ -115,6 +115,20 @@ export default function MarketPage() {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "stretch" }}>
                   <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>版本 {p.version}</span>
+                  <Link
+                    href={`/market/${encodeURIComponent(p.plugin_id)}`}
+                    style={{
+                      padding: "9px 14px",
+                      borderRadius: "var(--radius-control)",
+                      border: "1px solid var(--color-border-subtle)",
+                      color: "var(--color-accent)",
+                      fontSize: 14,
+                      textDecoration: "none",
+                      textAlign: "center",
+                    }}
+                  >
+                    查看详情
+                  </Link>
                   <button
                     type="button"
                     disabled={installing !== null}

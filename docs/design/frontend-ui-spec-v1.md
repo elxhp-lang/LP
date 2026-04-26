@@ -86,11 +86,12 @@
 | `/register` | 注册 | 表单、错误提示 | `POST /api/v1/auth/register` |
 | `/dashboard/plugins` | 插件控制台 | 生命周期演示、配置、日志、**AI 网关试调** | `install/configure/use/uninstall` + `POST /api/v1/ai/invoke` |
 | `/chat`（预留） | 对话模式 | 超级 Agent 对话、推荐卡、成交引导 | 预留 `POST /api/v1/agent/...` 或 SSE |
-| `/market`（预留） | 插件市场 | 列表、详情、加购/篮子 | 预留市场 API |
+| `/market` | 插件市场 | 列表、安装入口 | `GET /api/v1/marketplace/plugins` + `POST /api/v1/plugins/install` |
+| `/market/[pluginId]` | 插件详情 | 详情、案例、安装入口 | `GET /api/v1/marketplace/plugins/{plugin_id}` + `POST /api/v1/plugins/install` |
 | `/workflow`（预留） | 工作流 | 只读/可编 DAG、步骤状态 | 预留工作流 API |
 | `/settings`（预留） | 设置 | 租户、模型、密钥占位（仅 UI） | 预留配置 API |
 | `/chat` | 对话模式 | 超级 Agent 对话（占位） | 预留 Agent API |
-| `/market` | 插件市场 | 浏览与自配（占位） | 预留市场 API |
+| `/market` | 插件市场 | 浏览与安装（已接 API） | 市场目录 + 安装接口 |
 | `/workflow` | 工作流 | 可视化 DAG（占位） | 预留工作流 API |
 
 **说明**：已存在页面先对齐本规范的 Token；预留路由可在导航中显示「即将推出」或暂不露出，避免遗漏扩展点。  
@@ -155,7 +156,7 @@
 | 工作流创建 | POST | `/api/v1/workflows` | `name`, `description?`, `project_id?`, `steps[]` | 对话页「保存为工作流」；未传 `project_id` 时用 Header 上下文 |
 | 工作流详情 | GET | `/api/v1/workflows/{workflow_id}` | - | 详情与只读步骤（预留扩展 GET 列表已含 definition） |
 | 市场目录 | GET | `/api/v1/marketplace/plugins` | - | `/market` 卡片列表 |
-| 市场详情 | GET | `/api/v1/marketplace/plugins/{plugin_id}` | - | 详情页预留（当前可与列表同屏展示） |
+| 市场详情 | GET | `/api/v1/marketplace/plugins/{plugin_id}` | - | `/market/[pluginId]` 详情页（案例 + 安装） |
 | AI 调度 | POST | `/api/v1/ai/invoke` | `plugin_id`, `task_type`, `payload` | 插件/内部调用；后端按 `AI_PROVIDER` 走 stub 或 OpenAI 兼容接口 |
 
 ### 6.2 预留接口（命名空间建议）

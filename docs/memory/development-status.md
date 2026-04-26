@@ -33,7 +33,7 @@
 | 项目（租户下） | 可用 | `GET/POST /api/v1/projects`、`GET /api/v1/projects/{id}`；表 `projects` |
 | Web 壳层 | 可用 | 全局 Design Token、`AppShell` 顶栏、项目下拉与新建、`/dashboard/plugins` 科技风控制台（含 **AI 网关试调** → `/api/v1/ai/invoke`） |
 | 项目请求上下文 | 可用 | 可选 Header `x-project-id`；中间件校验租户归属；`GET /api/v1/context`；前端 `apiGet`/`apiPost` 自动带头 |
-| 占位路由 | 已替代 | `/market` 已接 **目录 API + 安装**；`/chat` 已接 **Agent 推荐 + preflight**；`/workflow` 已接 **列表 + 只读步骤** |
+| 占位路由 | 已替代 | `/market` 已接 **目录 API + 安装**，并新增 `/market/[pluginId]` 详情页；`/chat` 已接 **Agent 推荐 + preflight**；`/workflow` 已接 **列表 + 只读步骤** |
 | 超级 Agent v1（骨架） | 可用 | `POST /api/v1/agent/recommend`、`/preflight`；规则引擎 + 契约与后续 LLM 对齐；`/chat` 表单联调 |
 | 工作流持久化 v1 | 可用 | 表 `workflows`；`GET/POST /api/v1/workflows`、`GET /{id}`；定义 JSON `version`+`steps`；`/chat` 可保存草案 |
 | 插件市场 MVP | 可用 | `GET /api/v1/marketplace/plugins`、`GET .../plugins/{id}`（静态目录）；`/market` 列表并调用既有 `POST /api/v1/plugins/install` |
@@ -59,7 +59,7 @@
 2. ~~**占位页面**：`/chat`、`/market`、`/workflow` 与导航。~~（已完成）  
 3. ~~**超级 Agent v1（MVP）**：规则推荐 + preflight 占位 API + `/chat` 展示。~~（已完成骨架；后续再接真实计费闸门与 LLM）  
 4. ~~**工作流 v1**：线性步骤存储 + 列表/只读展示 + 对话页保存。~~（已完成；后续 DAG 编辑、执行态、日志）  
-5. **插件市场扩展**：上架审核、订单、搜索与分页（当前为静态目录 + 安装闭环）。  
+5. **插件市场扩展**：上架审核、订单、搜索与分页（当前为静态目录 + 列表/详情 + 安装闭环）。  
 6. **移动端**：执行与查看优先，API 与 Web 共用。  
 7. **AI 网关进阶**：调用配额、用量统计、审计日志、多模型路由（当前已具备 stub + OpenAI 兼容 HTTP）。  
 8. **示例插件做实**：真实模型调用、评测与计费扣次。  
@@ -103,3 +103,4 @@
 | 2026-04-26 | AI 网关：`openai_compatible` + 环境变量、`core/backend/.env.example`；`pytest` 20 passed |
 | 2026-04-26 | 插件控制台：「AI 网关试调」按钮联调 `POST /api/v1/ai/invoke` |
 | 2026-04-26 | 插件 API：`/plugins/use` 返回 `lifecycle_events`，`api_name=ai:invoke` 时带 `output`；`pytest` 22 passed |
+| 2026-04-26 | 市场详情页：`/market/[pluginId]` 联调 `GET /api/v1/marketplace/plugins/{plugin_id}` 并支持安装 |
