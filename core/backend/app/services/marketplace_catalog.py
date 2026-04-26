@@ -52,8 +52,37 @@ _DETAILS: dict[str, MarketplacePluginDetail] = {
 }
 
 
-def list_marketplace_plugins() -> list[MarketplacePluginSummary]:
-    return list(_SUMMARIES)
+def list_marketplace_plugins(
+    query: str | None = None,
+    category: str | None = None,
+    offset: int = 0,
+    limit: int = 20,
+) -> list[MarketplacePluginSummary]:
+    rows = list(_SUMMARIES)
+
+    if category:
+        want = category.strip().lower()
+        rows = [r for r in rows if r.category.lower() == want]
+
+    if query:
+        q = query.strip().lower()
+        if q:
+            rows = [
+                r
+                for r in rows
+                if q in r.plugin_id.lower()
+                or q in r.name.lower()
+                or q in r.tagline.lower()
+                or any(q in c.lower() for c in r.capabilities)
+            ]
+
+    start = max(0, offset)
+    end = start + max(1, limit)
+    return rows[start:end]
+
+
+def list_marketplace_categories() -> list[str]:
+    return sorted({r.category for r in _SUMMARIES})
 
 
 def get_marketplace_plugin(plugin_id: str) -> MarketplacePluginDetail | None:

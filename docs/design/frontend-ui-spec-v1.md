@@ -91,7 +91,7 @@
 | `/workflow`（预留） | 工作流 | 只读/可编 DAG、步骤状态 | 预留工作流 API |
 | `/settings`（预留） | 设置 | 租户、模型、密钥占位（仅 UI） | 预留配置 API |
 | `/chat` | 对话模式 | 超级 Agent 对话（占位） | 预留 Agent API |
-| `/market` | 插件市场 | 浏览与安装（已接 API） | 市场目录 + 安装接口 |
+| `/market` | 插件市场 | 浏览、搜索、分类、分页与安装（已接 API） | 市场目录（支持查询参数）+ 分类 + 安装接口 |
 | `/workflow` | 工作流 | 可视化 DAG（占位） | 预留工作流 API |
 
 **说明**：已存在页面先对齐本规范的 Token；预留路由可在导航中显示「即将推出」或暂不露出，避免遗漏扩展点。  
@@ -155,7 +155,8 @@
 | 工作流列表 | GET | `/api/v1/workflows` | Query：`project_id?` | `/workflow` 左侧列表；未选项目则列租户全部 |
 | 工作流创建 | POST | `/api/v1/workflows` | `name`, `description?`, `project_id?`, `steps[]` | 对话页「保存为工作流」；未传 `project_id` 时用 Header 上下文 |
 | 工作流详情 | GET | `/api/v1/workflows/{workflow_id}` | - | 详情与只读步骤（预留扩展 GET 列表已含 definition） |
-| 市场目录 | GET | `/api/v1/marketplace/plugins` | - | `/market` 卡片列表 |
+| 市场目录 | GET | `/api/v1/marketplace/plugins` | Query：`q?`,`category?`,`offset?`,`limit?` | `/market` 列表 + 搜索 + 分类 + 分页 |
+| 市场分类 | GET | `/api/v1/marketplace/categories` | - | `/market` 分类下拉 |
 | 市场详情 | GET | `/api/v1/marketplace/plugins/{plugin_id}` | - | `/market/[pluginId]` 详情页（案例 + 安装） |
 | AI 调度 | POST | `/api/v1/ai/invoke` | `plugin_id`, `task_type`, `payload` | 插件/内部调用；后端按 `AI_PROVIDER` 走 stub 或 OpenAI 兼容接口 |
 

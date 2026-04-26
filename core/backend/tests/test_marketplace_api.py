@@ -31,3 +31,35 @@ def test_marketplace_detail_404():
         headers={"x-tenant-id": TENANT},
     )
     assert r.status_code == 404
+
+
+def test_marketplace_list_query_filter():
+    r = client.get(
+        "/api/v1/marketplace/plugins",
+        headers={"x-tenant-id": TENANT},
+        params={"q": "翻译"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert len(body) >= 1
+    assert any(p["plugin_id"] == "plugin.translation.gpt" for p in body)
+
+
+def test_marketplace_list_category_and_paging():
+    r = client.get(
+        "/api/v1/marketplace/plugins",
+        headers={"x-tenant-id": TENANT},
+        params={"category": "跨境 / 数据", "offset": 0, "limit": 1},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert len(body) == 1
+    assert body[0]["plugin_id"] == "plugin.market.analysis.composer"
+
+
+def test_marketplace_categories():
+    r = client.get("/api/v1/marketplace/categories", headers={"x-tenant-id": TENANT})
+    assert r.status_code == 200
+    body = r.json()
+    assert "跨境 / 内容" in body
+    assert "跨境 / 数据" in body

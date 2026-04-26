@@ -36,7 +36,7 @@
 | 占位路由 | 已替代 | `/market` 已接 **目录 API + 安装**，并新增 `/market/[pluginId]` 详情页；`/chat` 已接 **Agent 推荐 + preflight**；`/workflow` 已接 **列表 + 只读步骤** |
 | 超级 Agent v1（骨架） | 可用 | `POST /api/v1/agent/recommend`、`/preflight`；规则引擎 + 契约与后续 LLM 对齐；`/chat` 表单联调 |
 | 工作流持久化 v1 | 可用 | 表 `workflows`；`GET/POST /api/v1/workflows`、`GET /{id}`；定义 JSON `version`+`steps`；`/chat` 可保存草案 |
-| 插件市场 MVP | 可用 | `GET /api/v1/marketplace/plugins`、`GET .../plugins/{id}`（静态目录）；`/market` 列表并调用既有 `POST /api/v1/plugins/install` |
+| 插件市场 MVP | 可用 | 市场支持 `q/category/offset/limit` 搜索筛选分页、`GET /api/v1/marketplace/categories`、详情页与安装闭环 |
 | AI 网关 MVP | 可用 | `POST /api/v1/ai/invoke`：`stub`（默认）或 `openai_compatible`（`AI_*` 环境变量，兼容 DeepSeek/OpenAI 类接口） |
 | 前端规范 | 草案 | `frontend-ui-spec-v1.md`，确认后可标为 frozen |
 | 自动化验证 | 已跑通 | 后端 `pytest`（含 projects API）；**接手后请在 `core/backend` 下定期执行** |
@@ -44,7 +44,7 @@
 ### 最近一次自动化验证（由开发侧执行，非业务方操作）
 
 - 命令：`cd core/backend && .venv\Scripts\python -m pytest -q`  
-- 结果：**22 passed**（含插件 use 联动 AI 网关、AI 网关、市场、工作流、Agent、context、projects 等）  
+- 结果：**25 passed**（含市场搜索/分类/分页、插件 use 联动 AI 网关、AI 网关、工作流、Agent、context、projects 等）  
 - 健康检查：`GET http://127.0.0.1:8000/health` → **200**（需本地已启动后端）  
 
 > **数据库说明**：若在增加 `projects` 表之前已有 `lp.db`，需**重启后端**或确保启动时执行 `init_db()`，以便 SQLite `create_all` 创建新表。
@@ -104,3 +104,4 @@
 | 2026-04-26 | 插件控制台：「AI 网关试调」按钮联调 `POST /api/v1/ai/invoke` |
 | 2026-04-26 | 插件 API：`/plugins/use` 返回 `lifecycle_events`，`api_name=ai:invoke` 时带 `output`；`pytest` 22 passed |
 | 2026-04-26 | 市场详情页：`/market/[pluginId]` 联调 `GET /api/v1/marketplace/plugins/{plugin_id}` 并支持安装 |
+| 2026-04-26 | 市场扩展：`/market` 搜索/分类/分页；后端 `q/category/offset/limit` + `/categories`；`pytest` 25 passed |

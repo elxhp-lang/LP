@@ -17,13 +17,31 @@ type Listing = {
 
 export default function MarketPage() {
   const [items, setItems] = useState<Listing[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [keyword, setKeyword] = useState("");
+  const [category, setCategory] = useState("");
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [installing, setInstalling] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
+  const pageSize = 10;
 
   const load = useCallback(async () => {
     setLoading(true);
-    const res = await apiGet("/api/v1/marketplace/plugins");
+    const offset = (page - 1) * pageSize;
+    const qs = new URLSearchParams();
+    qs.set("offset", String(offset));
+    qs.set("limit", String(pageSize));
+    if (keyword.trim()) {
+      qs.set("q", keyword.trim());
+    }
+    if (category) {
+      qs.set("category", category);
+    }
+    const [res, catRes] = await Promise.all([
+      apiGet(`/api/v1/marketplace/plugins?${qs.toString()}`),
+      apiGet("/api/v1/marketplace/categories"),
+    ]);
     setLoading(false);
     if (res.ok && Array.isArray(res.data)) {
       setItems(res.data as Listing[]);
@@ -31,7 +49,10 @@ export default function MarketPage() {
       setItems([]);
       setBanner(typeof res.message === "string" ? res.message : "加载失败");
     }
-  }, []);
+    if (catRes.ok && Array.isArray(catRes.data)) {
+      setCategories(catRes.data.filter((x): x is string => typeof x === "string"));
+    }
+  }, [category, keyword, page]);
 
   useEffect(() => {
     void load();
@@ -66,6 +87,71 @@ export default function MarketPage() {
           前往插件控制台
         </Link>
       </p>
+      <div
+        style={{
+          display: "flex",
+          gap: "var(--space-sm)",
+          flexWrap: "wrap",
+          marginBottom: "var(--space-md)",
+          alignItems: "center",
+        }}
+      >
+        <input
+          value={keyword}
+          onChange={(e) => {
+            setKeyword(e.target.value);
+            setPage(1);
+          }}
+          placeholder="搜索插件名/能力（如 翻译）"
+          style={{
+            minWidth: 220,
+            padding: "8px 10px",
+            borderRadius: "var(--radius-control)",
+            border: "1px solid var(--color-border-subtle)",
+            background: "var(--color-code-bg)",
+            color: "var(--color-text-primary)",
+          }}
+        />
+        <select
+          value={category}
+          onChange={(e) => {
+            setCategory(e.target.value);
+            setPage(1);
+          }}
+          style={{
+            padding: "8px 10px",
+            borderRadius: "var(--radius-control)",
+            border: "1px solid var(--color-border-subtle)",
+            background: "var(--color-code-bg)",
+            color: "var(--color-text-primary)",
+          }}
+        >
+          <option value="">全部分类</option>
+          {categories.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={() => {
+            setKeyword("");
+            setCategory("");
+            setPage(1);
+          }}
+          style={{
+            padding: "8px 12px",
+            borderRadius: "var(--radius-control)",
+            border: "1px solid var(--color-border-subtle)",
+            background: "transparent",
+            color: "var(--color-accent)",
+            cursor: "pointer",
+          }}
+        >
+          清空筛选
+        </button>
+      </div>
 
       {banner ? (
         <div
@@ -85,6 +171,8 @@ export default function MarketPage() {
 
       {loading ? (
         <p style={{ color: "var(--color-text-muted)" }}>加载目录中…</p>
+      ) : items.length === 0 ? (
+        <p style={{ color: "var(--color-text-muted)" }}>暂无匹配插件，换个关键词或分类试试。</p>
       ) : (
         <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
           {items.map((p) => (
@@ -151,6 +239,39 @@ export default function MarketPage() {
           ))}
         </ul>
       )}
+      <div style={{ display: "flex", gap: "var(--space-sm)", marginTop: "var(--space-md)" }}>
+        <button
+          type="button"
+          disabled={page <= 1 || loading}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          style={{
+            padding: "8px 12px",
+            borderRadius: "var(--radius-control)",
+            border: "1px solid var(--color-border-subtle)",
+            background: "transparent",
+            color: "var(--color-accent)",
+            cursor: page <= 1 || loading ? "not-allowed" : "pointer",
+          }}
+        >
+          上一页
+        </button>
+        <button
+          type="button"
+          disabled={loading || items.length < pageSize}
+          onClick={() => setPage((p) => p + 1)}
+          style={{
+            padding: "8px 12px",
+            borderRadius: "var(--radius-control)",
+            border: "1px solid var(--color-border-subtle)",
+            background: "transparent",
+            color: "var(--color-accent)",
+            cursor: loading || items.length < pageSize ? "not-allowed" : "pointer",
+          }}
+        >
+          下一页
+        </button>
+        <span style={{ color: "var(--color-text-muted)", fontSize: 13, alignSelf: "center" }}>第 {page} 页</span>
+      </div>
     </main>
   );
 }
