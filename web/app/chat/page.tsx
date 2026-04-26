@@ -27,12 +27,21 @@ type PreflightPayload = {
   detail: string;
 };
 
+type FlowRunLog = {
+  stepTitle: string;
+  pluginId: string;
+  ok: boolean;
+  message: string;
+};
+
 export default function ChatPage() {
   const [message, setMessage] = useState("我是跨境卖家，需要翻译商品详情并看欧洲市场趋势");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<RecommendPayload | null>(null);
   const [preflight, setPreflight] = useState<PreflightPayload | null>(null);
   const [savingWf, setSavingWf] = useState(false);
+  const [runningFlow, setRunningFlow] = useState(false);
+  const [flowLogs, setFlowLogs] = useState<FlowRunLog[]>([]);
 
   const runPreflightByIds = async (ids: string[]) => {
     const res = await apiPost("/api/v1/agent/preflight", { plugin_ids: ids });
@@ -123,6 +132,33 @@ export default function ChatPage() {
     } else {
       window.alert(typeof res.message === "string" ? res.message : "保存失败");
     }
+  };
+
+  const onRunRecommendedFlow = async () => {
+    if (!result || !preflight?.allowed) {
+      return;
+    }
+    setRunningFlow(true);
+    setFlowLogs([]);
+    const logs: FlowRunLog[] = [];
+    for (const step of result.workflow_draft.steps) {
+      const res = await apiPost("/api/v1/plugins/use", {
+        plugin_id: step.plugin_id,
+        action: step.title,
+        api_name: "ai:invoke",
+      });
+      logs.push({
+        stepTitle: step.title,
+        pluginId: step.plugin_id,
+        ok: res.ok,
+        message: typeof res.message === "string" ? res.message : res.ok ? "ok" : "failed",
+      });
+      setFlowLogs([...logs]);
+      if (!res.ok) {
+        break;
+      }
+    }
+    setRunningFlow(false);
   };
 
   return (
@@ -272,6 +308,28 @@ export default function ChatPage() {
           <div style={{ color: "var(--color-text-muted)" }}>
             需购买：{preflight.needs_purchase ? "是" : "否"} ｜需充值：{preflight.needs_topup ? "是" : "否"}
           </div>
+          {preflight.allowed && result ? (
+            <div style={{ marginTop: 10, display: "flex", gap: "var(--space-sm)", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                disabled={runningFlow}
+                onClick={() => void onRunRecommendedFlow()}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: "var(--radius-control)",
+                  border: "1px solid var(--color-border-subtle)",
+                  background: "transparent",
+                  color: "var(--color-success)",
+                  cursor: runningFlow ? "wait" : "pointer",
+                }}
+              >
+                {runningFlow ? "执行中…" : "立即运行推荐流程"}
+              </button>
+              <span style={{ fontSize: 12, color: "var(--color-text-muted)", alignSelf: "center" }}>
+                支付回跳后可直接点这里，不用再手动找入口。
+              </span>
+            </div>
+          ) : null}
           {preflight.needs_purchase && result?.plugins?.[0] ? (
             <p style={{ marginTop: 10 }}>
               <Link
@@ -281,6 +339,15 @@ export default function ChatPage() {
                 去购买首个推荐插件：{result.plugins[0].name}
               </Link>
             </p>
+          ) : null}
+          {flowLogs.length > 0 ? (
+            <ul style={{ marginTop: 12, marginBottom: 0, paddingLeft: 18, color: "var(--color-text-secondary)" }}>
+              {flowLogs.map((log, idx) => (
+                <li key={`${log.pluginId}-${idx}`}>
+                  {log.ok ? "✅" : "❌"} {log.stepTitle}（{log.pluginId}）: {log.message}
+                </li>
+              ))}
+            </ul>
           ) : null}
         </section>
       ) : null}
