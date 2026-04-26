@@ -31,7 +31,7 @@
 | 后端骨架 | 可用 | FastAPI：认证、插件 install/configure/use/uninstall、AI 路由占位、健康检查 |
 | 插件生态 MVP | 可用 | SDK、TS 模板、两个示例插件、沙箱脚本、权限隔离演示 |
 | 项目（租户下） | 可用 | `GET/POST /api/v1/projects`、`GET /api/v1/projects/{id}`；表 `projects` |
-| Web 壳层 | 可用 | 全局 Design Token、`AppShell` 顶栏、项目下拉与新建、`/dashboard/plugins` 科技风控制台 |
+| Web 壳层 | 可用 | 全局 Design Token、`AppShell` 顶栏、项目下拉与新建、`/dashboard/plugins` 科技风控制台（含 **AI 网关试调** → `/api/v1/ai/invoke`） |
 | 项目请求上下文 | 可用 | 可选 Header `x-project-id`；中间件校验租户归属；`GET /api/v1/context`；前端 `apiGet`/`apiPost` 自动带头 |
 | 占位路由 | 已替代 | `/market` 已接 **目录 API + 安装**；`/chat` 已接 **Agent 推荐 + preflight**；`/workflow` 已接 **列表 + 只读步骤** |
 | 超级 Agent v1（骨架） | 可用 | `POST /api/v1/agent/recommend`、`/preflight`；规则引擎 + 契约与后续 LLM 对齐；`/chat` 表单联调 |
@@ -101,3 +101,4 @@
 | 2026-04-26 | 工作流：`workflows` API、`/workflow` 只读页、`/chat` 保存；`pytest` 14 passed |
 | 2026-04-26 | 市场：`/api/v1/marketplace/plugins`、`/market` 联调安装；`pytest` 17 passed |
 | 2026-04-26 | AI 网关：`openai_compatible` + 环境变量、`core/backend/.env.example`；`pytest` 20 passed |
+| 2026-04-26 | 插件控制台：「AI 网关试调」按钮联调 `POST /api/v1/ai/invoke` |

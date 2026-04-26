@@ -122,3 +122,8 @@
   - 文档：`stage-2-dev-setup.md`、`development-status.md`、`frontend-ui-spec-v1.md` §6.1。
 - 变更原因：落实「核心统一调度、端侧不跑重模型」；先接通用 OpenAI 兼容协议，便于接 DeepSeek 与自建网关。
 - 影响范围：部署需知悉外呼；密钥仅走环境变量，勿入库。
+
+### CHG-014：插件控制台接入 AI 网关试调
+- 变更内容：`web/app/dashboard/plugins/page.tsx` 每插件卡片增加 **AI 网关试调**，`apiPost` 调用 `POST /api/v1/ai/invoke`（payload 含当前配置与示例文案/品类）；顶部说明与后端 `AI_*` 环境变量对齐；更新 `development-status.md`、`frontend-ui-spec-v1.md` 页面地图。
+- 变更原因：打通「安装/配置 → 核心调度」演示路径，无需额外页面即可验证 stub 或远程模型。
+- 影响范围：仅前端交互；不改变插件生命周期 API。

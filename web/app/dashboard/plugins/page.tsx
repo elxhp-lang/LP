@@ -124,6 +124,35 @@ export default function PluginDashboardPage() {
     );
   };
 
+  /** 走核心 AI 网关（stub 或环境变量配置的远程模型），不改变插件生命周期状态。 */
+  const invokeAiGateway = async (plugin: PluginRow) => {
+    const taskType =
+      plugin.id === "plugin.translation.gpt" ? "translate-product" : "analyze-market";
+    const payload =
+      plugin.id === "plugin.translation.gpt"
+        ? {
+            ...translationConfig,
+            sampleText: "你好，世界！这是一条控制台试调文案。",
+          }
+        : {
+            ...marketConfig,
+            topic: "便携储能",
+          };
+    setLoadingAction(`AI 网关：${plugin.name}`);
+    const result = await apiPost("/api/v1/ai/invoke", {
+      plugin_id: plugin.id,
+      task_type: taskType,
+      payload,
+    });
+    setLastResult(result);
+    const now = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+    const ok = result.ok;
+    setActivityLogs((prev) =>
+      [`[${now}] AI 网关试调 (${plugin.name}) -> ${ok ? "成功" : "失败"}`, ...prev].slice(0, 8),
+    );
+    setLoadingAction("");
+  };
+
   const uninstallPlugin = async (plugin: PluginRow) => {
     await runAction(
       plugin.id,
@@ -180,6 +209,9 @@ export default function PluginDashboardPage() {
       <h2 style={{ marginBottom: 6, color: "#7dd3fc", letterSpacing: 0.4 }}>插件控制台（MVP）</h2>
       <p style={{ marginTop: 0, color: "#93c5fd" }}>
         现在是可交互版本：支持完整生命周期操作，含状态、日志和结果面板。
+        <strong style={{ color: "#e9d5ff" }}> AI 网关试调</strong>
+        走 <code style={{ color: "#7dd3fc" }}>/api/v1/ai/invoke</code>
+        （默认占位；后端配置 <code>AI_PROVIDER</code> 等后可连 DeepSeek / OpenAI 兼容接口）。
       </p>
 
       {demoPlugins.map((plugin) => (
@@ -303,6 +335,19 @@ export default function PluginDashboardPage() {
               disabled={Boolean(loadingAction)}
             >
               使用
+            </button>
+            <button
+              style={{
+                ...buttonStyle,
+                border: "1px solid rgba(167,139,250,0.55)",
+                background: "linear-gradient(180deg, rgba(91,33,182,0.4), rgba(30,64,175,0.25))",
+              }}
+              type="button"
+              onClick={() => void invokeAiGateway(plugin)}
+              disabled={Boolean(loadingAction)}
+              title="调用 POST /api/v1/ai/invoke；默认 stub，配置 AI_* 后可走真实模型"
+            >
+              AI 网关试调
             </button>
             <button
               style={{

@@ -84,7 +84,7 @@
 | `/` | 首页/落地 | 价值说明、登录入口 | 静态或可接 `GET /health` |
 | `/login` | 登录 | 表单、错误提示 | `POST /api/v1/auth/login` + `x-tenant-id` |
 | `/register` | 注册 | 表单、错误提示 | `POST /api/v1/auth/register` |
-| `/dashboard/plugins` | 插件控制台 | 生命周期演示、配置、日志 | `install/configure/use/uninstall` 等 |
+| `/dashboard/plugins` | 插件控制台 | 生命周期演示、配置、日志、**AI 网关试调** | `install/configure/use/uninstall` + `POST /api/v1/ai/invoke` |
 | `/chat`（预留） | 对话模式 | 超级 Agent 对话、推荐卡、成交引导 | 预留 `POST /api/v1/agent/...` 或 SSE |
 | `/market`（预留） | 插件市场 | 列表、详情、加购/篮子 | 预留市场 API |
 | `/workflow`（预留） | 工作流 | 只读/可编 DAG、步骤状态 | 预留工作流 API |
@@ -103,7 +103,7 @@
 
 ### 5.1 插件控制台（已实现，对齐规范）
 
-- **区块**：插件卡片（标题、ID、权限 Pill、状态徽章、配置区、四按钮、底部双栏「执行反馈 + 操作日志」）
+- **区块**：插件卡片（标题、ID、权限 Pill、状态徽章、配置区、**安装 / 配置 / 使用 / AI 网关试调 / 卸载**、底部双栏「执行反馈 + 操作日志」）
 - **状态**：未安装 / 已安装 / 已配置 / 运行中 / 已卸载 / 失败（颜色用 Token）
 - **必须**：所有写操作按钮在请求中 **禁用防重复**；失败时 **保留上一次成功/失败 JSON**
 
