@@ -55,7 +55,11 @@ def invoke_ai(payload: AIInvokeRequest, request: Request, db: Session = Depends(
     output = result.get("output", {})
     status = "failed" if any(k in output for k in ("error", "status_code")) else "success"
     request_preview = json.dumps(payload.payload, ensure_ascii=False)[:1000]
-    output_preview = str(output.get("message", ""))[:1000]
+    route_chain = result.get("route_chain")
+    route_preview = ""
+    if isinstance(route_chain, list) and route_chain:
+        route_preview = f" [route: {' -> '.join(str(x) for x in route_chain[:5])}]"
+    output_preview = f"{str(output.get('message', ''))[:850]}{route_preview}"[:1000]
     status_code = str(output.get("status_code", ""))[:20]
     error_message = str(output.get("error", ""))[:1000]
     event = AIUsageEvent(

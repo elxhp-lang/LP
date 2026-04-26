@@ -30,6 +30,21 @@ def _resolve_model_for_task(task_type: str) -> str:
     return cfg.task_model_map.get(task_type.lower(), cfg.model)
 
 
+def _resolve_model_candidates(task_type: str) -> list[str]:
+    cfg = get_ai_settings()
+    candidates: list[str] = []
+    routed = cfg.task_model_map.get(task_type.lower(), "")
+    if routed:
+        candidates.extend(x.strip() for x in routed.split("|") if x.strip())
+    candidates.append(cfg.model)
+    candidates.extend(cfg.fallback_models)
+    out: list[str] = []
+    for model in candidates:
+        if model and model not in out:
+            out.append(model)
+    return out
+
+
 def _openai_compatible_invoke(payload: AIInvokeRequest, model_name: str) -> dict[str, Any]:
     cfg = get_ai_settings()
     base = cfg.base_url or "https://api.openai.com"
@@ -82,56 +97,67 @@ def invoke_model(payload: AIInvokeRequest) -> dict[str, Any]:
     cfg = get_ai_settings()
     prov = cfg.provider
     model_name = _resolve_model_for_task(payload.task_type)
+    model_candidates = _resolve_model_candidates(payload.task_type)
 
     if prov in ("stub", "none", ""):
         result = _stub_response(payload)
         result["provider"] = "stub"
-        result["route_model"] = model_name
+        result["route_model"] = model_candidates[0] if model_candidates else model_name
+        result["route_chain"] = model_candidates
+        result["route_fallback_used"] = False
         return result
 
     if prov in ("openai_compatible", "openai", "deepseek"):
         if not cfg.api_key:
-            return _stub_response(
+            result = _stub_response(
                 payload,
                 note="AI_PROVIDER 已设为远程模式但未配置 AI_API_KEY，仍返回占位。",
             )
+            result["provider"] = "stub"
+            result["route_model"] = model_candidates[0] if model_candidates else model_name
+            result["route_chain"] = model_candidates
+            result["route_fallback_used"] = False
+            return result
         if not cfg.base_url:
-            return _stub_response(
+            result = _stub_response(
                 payload,
                 note="已配置密钥但缺少 AI_BASE_URL（例如 https://api.deepseek.com）。",
             )
-        try:
-            result = _openai_compatible_invoke(payload, model_name=model_name)
-            result["route_model"] = model_name
+            result["provider"] = "stub"
+            result["route_model"] = model_candidates[0] if model_candidates else model_name
+            result["route_chain"] = model_candidates
+            result["route_fallback_used"] = False
             return result
-        except httpx.HTTPStatusError as exc:
-            detail = exc.response.text[:2000] if exc.response is not None else str(exc)
-            return {
-                "model": model_name,
-                "provider": cfg.provider,
-                "route_model": model_name,
-                "output": {
-                    "message": "upstream http error",
-                    "pluginId": payload.plugin_id,
-                    "taskType": payload.task_type,
-                    "error": detail,
-                    "status_code": exc.response.status_code if exc.response else None,
-                },
-            }
-        except (httpx.RequestError, ValueError, KeyError) as exc:
-            return {
-                "model": model_name,
-                "provider": cfg.provider,
-                "route_model": model_name,
-                "output": {
-                    "message": "ai request failed",
-                    "pluginId": payload.plugin_id,
-                    "taskType": payload.task_type,
-                    "error": str(exc),
-                },
-            }
+        route_errors: list[str] = []
+        for idx, candidate in enumerate(model_candidates):
+            try:
+                result = _openai_compatible_invoke(payload, model_name=candidate)
+                result["route_model"] = candidate
+                result["route_chain"] = model_candidates
+                result["route_fallback_used"] = idx > 0
+                return result
+            except httpx.HTTPStatusError as exc:
+                detail = exc.response.text[:300] if exc.response is not None else str(exc)
+                route_errors.append(f"{candidate}:http:{exc.response.status_code if exc.response else 'n/a'}:{detail}")
+            except (httpx.RequestError, ValueError, KeyError) as exc:
+                route_errors.append(f"{candidate}:error:{str(exc)[:300]}")
+        return {
+            "model": model_candidates[-1] if model_candidates else model_name,
+            "provider": cfg.provider,
+            "route_model": model_candidates[-1] if model_candidates else model_name,
+            "route_chain": model_candidates,
+            "route_fallback_used": len(model_candidates) > 1,
+            "output": {
+                "message": "ai request failed after fallback",
+                "pluginId": payload.plugin_id,
+                "taskType": payload.task_type,
+                "error": " | ".join(route_errors)[:2000],
+            },
+        }
 
     result = _stub_response(payload, note=f"未知 AI_PROVIDER={prov!r}，使用 stub。")
     result["provider"] = "stub"
-    result["route_model"] = model_name
+    result["route_model"] = model_candidates[0] if model_candidates else model_name
+    result["route_chain"] = model_candidates
+    result["route_fallback_used"] = False
     return result

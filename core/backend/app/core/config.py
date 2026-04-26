@@ -24,6 +24,7 @@ class AISettings:
     base_url: str | None
     model: str
     task_model_map: Mapping[str, str]
+    fallback_models: tuple[str, ...]
 
 
 def get_ai_settings() -> AISettings:
@@ -36,10 +37,13 @@ def get_ai_settings() -> AISettings:
             model = right.strip()
             if task and model:
                 task_model_map[task] = model
+    fallback_models_raw = (os.environ.get("AI_FALLBACK_MODELS") or "").strip()
+    fallback_models = tuple(x.strip() for x in fallback_models_raw.split(",") if x.strip())
     return AISettings(
         provider=(os.environ.get("AI_PROVIDER") or "stub").lower().strip(),
         api_key=os.environ.get("AI_API_KEY") or None,
         base_url=(os.environ.get("AI_BASE_URL") or "").strip() or None,
         model=(os.environ.get("AI_MODEL") or "gpt-3.5-turbo").strip(),
         task_model_map=task_model_map,
+        fallback_models=fallback_models,
     )

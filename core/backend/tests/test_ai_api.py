@@ -92,6 +92,46 @@ def test_ai_task_model_route_map_hits(monkeypatch):
     assert called["model"] == "routed-model"
 
 
+def test_ai_model_fallback_to_second_candidate(monkeypatch):
+    tenant = f"test-tenant-ai-{uuid4()}"
+    monkeypatch.setenv("AI_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("AI_API_KEY", "sk-test")
+    monkeypatch.setenv("AI_BASE_URL", "https://api.example.com")
+    monkeypatch.setenv("AI_MODEL", "fallback-model")
+    monkeypatch.setenv("AI_TASK_MODEL_MAP", "translate:primary-model")
+    monkeypatch.setenv("AI_FALLBACK_MODELS", "backup-model")
+
+    calls: list[str] = []
+
+    def fake_post(*args, **kwargs):
+        model = kwargs["json"]["model"]
+        calls.append(model)
+        if model == "primary-model":
+            resp = MagicMock()
+            resp.status_code = 429
+            resp.text = "rate limited"
+            err = httpx.HTTPStatusError("rate limited", request=MagicMock(), response=resp)
+            raise err
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"choices": [{"message": {"content": "fallback-ok"}}]}
+        return mock_resp
+
+    import httpx
+
+    monkeypatch.setattr("app.services.ai_gateway.httpx.post", fake_post)
+
+    r = client.post(
+        "/api/v1/ai/invoke",
+        headers={"x-tenant-id": tenant},
+        json={"plugin_id": "plugin.translation.gpt", "task_type": "translate", "payload": {"text": "hello"}},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["model"] == "fallback-model"
+    assert calls == ["primary-model", "fallback-model"]
+
+
 def test_ai_openai_missing_key_falls_back(monkeypatch):
     tenant = f"test-tenant-ai-{uuid4()}"
     monkeypatch.setenv("AI_PROVIDER", "openai_compatible")

@@ -118,3 +118,4 @@
 | 2026-04-26 | AI 用量 v1：`/ai/invoke` 自动记账，新增 `/ai/usage/summary` 与 `/ai/quota`，聊天页展示当月配额与用量 |
 | 2026-04-26 | AI 审计 v1：`/ai/invoke` 同步写入审计日志，新增 `/ai/audit/logs` 分页查询，聊天页展示最近 5 条调用摘要 |
 | 2026-04-26 | AI 路由 v1：支持 `AI_TASK_MODEL_MAP` 按 `task_type` 命中模型并回退默认模型，审计与聊天页显示命中模型 |
+| 2026-04-26 | AI 路由 v2：支持候选链路 + 失败自动降级（`AI_FALLBACK_MODELS`），审计记录输出包含路由链路信息 |
