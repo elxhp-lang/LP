@@ -252,6 +252,96 @@ def test_ai_route_policy_list_pagination():
     assert len(body["items"]) == 2
 
 
+def test_ai_route_policy_batch_update_disabled_models():
+    tenant = f"test-tenant-ai-{uuid4()}"
+    headers = {"x-tenant-id": tenant}
+    ids: list[str] = []
+    for i in range(2):
+        created = client.post(
+            "/api/v1/ai/route/policies",
+            headers=headers,
+            json={
+                "plugin_id": "plugin.translation.gpt",
+                "task_type": f"update-disabled-{i}",
+                "model_chain": "a|b",
+                "disabled_models": "",
+            },
+        )
+        assert created.status_code == 200
+        ids.append(created.json()["id"])
+
+    updated = client.post(
+        "/api/v1/ai/route/policies/batch-update-disabled-models",
+        headers=headers,
+        json={"ids": ids, "disabled_models": "gpt-4o-mini,deepseek-chat"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["ok"] is True
+    assert updated.json()["updated_count"] == 2
+
+    listing = client.get("/api/v1/ai/route/policies?offset=0&limit=10", headers=headers)
+    assert listing.status_code == 200
+    rows = {item["id"]: item for item in listing.json()["items"]}
+    assert rows[ids[0]]["disabled_models"] == "gpt-4o-mini,deepseek-chat"
+    assert rows[ids[1]]["disabled_models"] == "gpt-4o-mini,deepseek-chat"
+
+
+def test_ai_route_policy_export_and_import():
+    tenant = f"test-tenant-ai-{uuid4()}"
+    headers = {"x-tenant-id": tenant}
+    created = client.post(
+        "/api/v1/ai/route/policies",
+        headers=headers,
+        json={
+            "plugin_id": "plugin.translation.gpt",
+            "task_type": "io-export-import",
+            "model_chain": "m1|m2",
+            "disabled_models": "x1",
+        },
+    )
+    assert created.status_code == 200
+
+    exported = client.get("/api/v1/ai/route/policies/export", headers=headers)
+    assert exported.status_code == 200
+    body = exported.json()
+    assert body["total"] >= 1
+    assert any(item["task_type"] == "io-export-import" for item in body["items"])
+
+    imported = client.post(
+        "/api/v1/ai/route/policies/import",
+        headers=headers,
+        json={
+            "overwrite_existing": True,
+            "items": [
+                {
+                    "plugin_id": "plugin.translation.gpt",
+                    "task_type": "io-export-import",
+                    "model_chain": "m3|m4",
+                    "disabled_models": "x2",
+                },
+                {
+                    "plugin_id": "plugin.translation.gpt",
+                    "task_type": "io-new",
+                    "model_chain": "n1|n2",
+                    "disabled_models": "",
+                },
+            ],
+        },
+    )
+    assert imported.status_code == 200
+    assert imported.json()["updated_count"] == 1
+    assert imported.json()["created_count"] == 1
+
+    listing = client.get("/api/v1/ai/route/policies?offset=0&limit=20", headers=headers)
+    assert listing.status_code == 200
+    items = listing.json()["items"]
+    changed = [x for x in items if x["task_type"] == "io-export-import"][0]
+    added = [x for x in items if x["task_type"] == "io-new"][0]
+    assert changed["model_chain"] == "m3|m4"
+    assert changed["disabled_models"] == "x2"
+    assert added["model_chain"] == "n1|n2"
+
+
 def test_ai_route_circuit_breaker_skips_hot_failed_model(monkeypatch):
     tenant = f"test-tenant-ai-{uuid4()}"
     headers = {"x-tenant-id": tenant}

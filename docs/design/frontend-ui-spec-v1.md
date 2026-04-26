@@ -181,6 +181,9 @@
 | AI 路由策略设置 | POST | `/api/v1/ai/route/policies` | `plugin_id`,`task_type`,`model_chain`,`disabled_models` | 管理侧覆盖路由链路并临时禁用模型 |
 | AI 路由策略删除 | POST | `/api/v1/ai/route/policies/delete` | `id` | 管理侧按策略 ID 删除指定路由策略 |
 | AI 路由策略批量删除 | POST | `/api/v1/ai/route/policies/delete-batch` | `ids[]` | 管理侧批量清理已选策略 |
+| AI 路由策略批量更新禁用模型 | POST | `/api/v1/ai/route/policies/batch-update-disabled-models` | `ids[]`,`disabled_models` | 管理侧批量更新策略禁用模型 |
+| AI 路由策略导出 | GET | `/api/v1/ai/route/policies/export` | - | 管理侧导出当前租户策略 JSON |
+| AI 路由策略导入 | POST | `/api/v1/ai/route/policies/import` | `items[]`,`overwrite_existing` | 管理侧导入策略 JSON，支持覆盖或跳过已存在策略 |
 | AI 计费明细 | GET | `/api/v1/ai/billing/records` | Query: `offset?`,`limit?` | 管理侧查看按调用生成的扣费流水（units/单价/金额/余额） |
 
 ### 6.2 预留接口（命名空间建议）

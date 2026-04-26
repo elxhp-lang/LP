@@ -11,8 +11,12 @@ from app.db.session import get_db
 from app.models.ai_usage import AIAuditLog, AIBillingRecord, AIQuota, AIRoutePolicy, AIUsageEvent
 from app.models.billing import Wallet
 from app.schemas.ai import (
+    AIRoutePolicyBatchUpdateDisabledModelsRequest,
     AIRoutePolicyBatchDeleteRequest,
     AIRoutePolicyDeleteRequest,
+    AIRoutePolicyExportResponse,
+    AIRoutePolicyImportRequest,
+    AIRoutePolicyImportResponse,
     AIAuditLogItem,
     AIAuditLogListResponse,
     AIBillingRecordItem,
@@ -469,3 +473,94 @@ def delete_route_policies_batch(
         db.delete(row)
     db.commit()
     return {"ok": True, "message": "deleted", "deleted_count": len(rows)}
+
+
+@router.post("/route/policies/batch-update-disabled-models")
+def batch_update_route_policies_disabled_models(
+    payload: AIRoutePolicyBatchUpdateDisabledModelsRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    tenant_id = request.state.tenant_id
+    ids = [x.strip() for x in payload.ids if isinstance(x, str) and x.strip()]
+    if not ids:
+        return {"ok": False, "message": "no ids provided", "updated_count": 0}
+    rows = db.scalars(
+        select(AIRoutePolicy).where(
+            AIRoutePolicy.tenant_id == tenant_id,
+            AIRoutePolicy.id.in_(ids),
+        )
+    ).all()
+    disabled_models = payload.disabled_models.strip()
+    for row in rows:
+        row.disabled_models = disabled_models
+        db.add(row)
+    db.commit()
+    return {"ok": True, "message": "updated", "updated_count": len(rows)}
+
+
+@router.get("/route/policies/export", response_model=AIRoutePolicyExportResponse)
+def export_route_policies(request: Request, db: Session = Depends(get_db)):
+    tenant_id = request.state.tenant_id
+    rows = db.scalars(
+        select(AIRoutePolicy)
+        .where(AIRoutePolicy.tenant_id == tenant_id)
+        .order_by(AIRoutePolicy.updated_at.desc())
+    ).all()
+    items = [
+        AIRoutePolicyUpsertRequest(
+            plugin_id=r.plugin_id,
+            task_type=r.task_type,
+            model_chain=r.model_chain,
+            disabled_models=r.disabled_models,
+        )
+        for r in rows
+    ]
+    return AIRoutePolicyExportResponse(items=items, total=len(items))
+
+
+@router.post("/route/policies/import", response_model=AIRoutePolicyImportResponse)
+def import_route_policies(
+    payload: AIRoutePolicyImportRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    tenant_id = request.state.tenant_id
+    created_count = 0
+    updated_count = 0
+    skipped_count = 0
+    for item in payload.items:
+        plugin_id = item.plugin_id.strip() or "*"
+        task_type = item.task_type.strip() or "*"
+        row = db.scalar(
+            select(AIRoutePolicy).where(
+                AIRoutePolicy.tenant_id == tenant_id,
+                AIRoutePolicy.plugin_id == plugin_id,
+                AIRoutePolicy.task_type == task_type,
+            )
+        )
+        if row is None:
+            db.add(
+                AIRoutePolicy(
+                    tenant_id=tenant_id,
+                    plugin_id=plugin_id,
+                    task_type=task_type,
+                    model_chain=item.model_chain.strip(),
+                    disabled_models=item.disabled_models.strip(),
+                )
+            )
+            created_count += 1
+            continue
+        if payload.overwrite_existing:
+            row.model_chain = item.model_chain.strip()
+            row.disabled_models = item.disabled_models.strip()
+            db.add(row)
+            updated_count += 1
+        else:
+            skipped_count += 1
+    db.commit()
+    return AIRoutePolicyImportResponse(
+        created_count=created_count,
+        updated_count=updated_count,
+        skipped_count=skipped_count,
+    )

@@ -95,6 +95,9 @@ export default function PluginDashboardPage() {
   const [selectedPolicyIds, setSelectedPolicyIds] = useState<string[]>([]);
   const [routePolicyOffset, setRoutePolicyOffset] = useState(0);
   const [routePolicyTotal, setRoutePolicyTotal] = useState(0);
+  const [batchDisabledModels, setBatchDisabledModels] = useState("");
+  const [routePolicyPortText, setRoutePolicyPortText] = useState("");
+  const [overwriteOnImport, setOverwriteOnImport] = useState(true);
 
   const actionHint = useMemo(() => {
     if (!loadingAction) {
@@ -319,6 +322,67 @@ export default function PluginDashboardPage() {
     setLastResult(result);
     const now = new Date().toLocaleTimeString("zh-CN", { hour12: false });
     setActivityLogs((prev) => [`[${now}] 批量删除策略 -> ${result.ok ? "成功" : "失败"}`, ...prev].slice(0, 8));
+    setSelectedPolicyIds([]);
+    void refreshAiOpsPanels();
+    setLoadingAction("");
+  };
+
+  const batchUpdateDisabledModels = async () => {
+    if (selectedPolicyIds.length === 0) {
+      return;
+    }
+    if (batchDisabledModels.includes("||")) {
+      setRoutePolicyError("批量禁用模型格式不正确，可用英文逗号分隔。");
+      return;
+    }
+    setRoutePolicyError("");
+    setLoadingAction(`批量更新禁用模型 (${selectedPolicyIds.length})`);
+    const result = await apiPost("/api/v1/ai/route/policies/batch-update-disabled-models", {
+      ids: selectedPolicyIds,
+      disabled_models: batchDisabledModels,
+    });
+    setLastResult(result);
+    const now = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+    setActivityLogs((prev) => [`[${now}] 批量更新禁用模型 -> ${result.ok ? "成功" : "失败"}`, ...prev].slice(0, 8));
+    void refreshAiOpsPanels();
+    setLoadingAction("");
+  };
+
+  const exportRoutePolicies = async () => {
+    setLoadingAction("导出路由策略");
+    const result = await apiGet("/api/v1/ai/route/policies/export");
+    setLastResult(result);
+    if (result.ok && result.data && typeof result.data === "object" && "items" in result.data) {
+      const body = result.data as { items: unknown[] };
+      setRoutePolicyPortText(JSON.stringify(body.items, null, 2));
+    }
+    const now = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+    setActivityLogs((prev) => [`[${now}] 导出路由策略 -> ${result.ok ? "成功" : "失败"}`, ...prev].slice(0, 8));
+    setLoadingAction("");
+  };
+
+  const importRoutePolicies = async () => {
+    let items: unknown = [];
+    try {
+      items = routePolicyPortText.trim() ? JSON.parse(routePolicyPortText) : [];
+      if (!Array.isArray(items)) {
+        setRoutePolicyError("导入内容必须是 JSON 数组。");
+        return;
+      }
+    } catch {
+      setRoutePolicyError("导入内容不是合法 JSON。");
+      return;
+    }
+    setRoutePolicyError("");
+    setLoadingAction("导入路由策略");
+    const result = await apiPost("/api/v1/ai/route/policies/import", {
+      items,
+      overwrite_existing: overwriteOnImport,
+    });
+    setLastResult(result);
+    const now = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+    setActivityLogs((prev) => [`[${now}] 导入路由策略 -> ${result.ok ? "成功" : "失败"}`, ...prev].slice(0, 8));
+    setRoutePolicyOffset(0);
     setSelectedPolicyIds([]);
     void refreshAiOpsPanels();
     setLoadingAction("");
@@ -631,7 +695,7 @@ export default function PluginDashboardPage() {
             />
           </div>
           {filteredRoutePolicies.length > 0 ? (
-            <div style={{ marginBottom: 10, display: "flex", gap: 8, alignItems: "center" }}>
+            <div style={{ marginBottom: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <button
                 style={{
                   ...buttonStyle,
@@ -645,6 +709,28 @@ export default function PluginDashboardPage() {
                 onClick={() => void deleteSelectedPolicies()}
               >
                 批量删除（{selectedPolicyIds.length}）
+              </button>
+              <input
+                value={batchDisabledModels}
+                onChange={(event) => setBatchDisabledModels(event.target.value)}
+                placeholder="批量设置禁用模型（逗号分隔）"
+                style={{
+                  borderRadius: 8,
+                  border: "1px solid rgba(56,189,248,0.35)",
+                  background: "rgba(2,6,23,0.8)",
+                  color: "#bae6fd",
+                  padding: "6px 8px",
+                  fontSize: 12,
+                  minWidth: 220,
+                }}
+              />
+              <button
+                style={{ ...buttonStyle, padding: "6px 10px", fontSize: 12 }}
+                type="button"
+                disabled={Boolean(loadingAction) || selectedPolicyIds.length === 0}
+                onClick={() => void batchUpdateDisabledModels()}
+              >
+                批量更新禁用
               </button>
               <span style={{ color: "#93c5fd", fontSize: 12 }}>先勾选，再批量删除。</span>
             </div>
@@ -717,6 +803,60 @@ export default function PluginDashboardPage() {
               ))}
             </ul>
           )}
+        </section>
+
+        <section
+          style={{
+            border: "1px solid rgba(56, 189, 248, 0.35)",
+            borderRadius: 12,
+            padding: 16,
+            backgroundColor: "rgba(15,23,42,0.88)",
+          }}
+        >
+          <h3 style={{ marginTop: 0 }}>路由策略导入/导出</h3>
+          <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+            <button
+              style={{ ...buttonStyle, padding: "6px 10px", fontSize: 12 }}
+              type="button"
+              disabled={Boolean(loadingAction)}
+              onClick={() => void exportRoutePolicies()}
+            >
+              导出策略 JSON
+            </button>
+            <button
+              style={{ ...buttonStyle, padding: "6px 10px", fontSize: 12 }}
+              type="button"
+              disabled={Boolean(loadingAction)}
+              onClick={() => void importRoutePolicies()}
+            >
+              导入策略 JSON
+            </button>
+            <label style={{ color: "#bfdbfe", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <input
+                type="checkbox"
+                checked={overwriteOnImport}
+                onChange={(event) => setOverwriteOnImport(event.target.checked)}
+                disabled={Boolean(loadingAction)}
+              />
+              导入时覆盖已存在策略
+            </label>
+          </div>
+          <textarea
+            value={routePolicyPortText}
+            onChange={(event) => setRoutePolicyPortText(event.target.value)}
+            placeholder='导入示例：[{"plugin_id":"plugin.translation.gpt","task_type":"translate","model_chain":"a|b","disabled_models":""}]'
+            style={{
+              width: "100%",
+              minHeight: 120,
+              boxSizing: "border-box",
+              borderRadius: 8,
+              border: "1px solid rgba(56,189,248,0.35)",
+              background: "rgba(2,6,23,0.8)",
+              color: "#bae6fd",
+              padding: "8px 10px",
+              fontSize: 12,
+            }}
+          />
         </section>
 
         <section

@@ -77,6 +77,27 @@ class AIRoutePolicyBatchDeleteRequest(BaseModel):
     ids: list[str]
 
 
+class AIRoutePolicyBatchUpdateDisabledModelsRequest(BaseModel):
+    ids: list[str]
+    disabled_models: str = ""
+
+
+class AIRoutePolicyImportRequest(BaseModel):
+    items: list[AIRoutePolicyUpsertRequest]
+    overwrite_existing: bool = True
+
+
+class AIRoutePolicyImportResponse(BaseModel):
+    created_count: int
+    updated_count: int
+    skipped_count: int
+
+
+class AIRoutePolicyExportResponse(BaseModel):
+    items: list[AIRoutePolicyUpsertRequest]
+    total: int
+
+
 class AIBillingRecordItem(BaseModel):
     id: str
     plugin_id: str
