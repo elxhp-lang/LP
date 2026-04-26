@@ -45,7 +45,7 @@
 ### 最近一次自动化验证（由开发侧执行，非业务方操作）
 
 - 命令：`cd core/backend && .venv\Scripts\python -m pytest -q`  
-- 结果：**31 passed**（含订单详情接口与状态页、支付渠道 ALIPAY/WECHAT、Agent preflight 计费闸门、billing 钱包/购买等）  
+- 结果：**48 passed**（含支付回调/退款占位、路由策略批量运营能力、插件调用走 AI 记账链路）  
 - 健康检查：`GET http://127.0.0.1:8000/health` → **200**（需本地已启动后端）  
 
 > **数据库说明**：若在增加 `projects` 表之前已有 `lp.db`，需**重启后端**或确保启动时执行 `init_db()`，以便 SQLite `create_all` 创建新表。
@@ -132,3 +132,5 @@
 | 2026-04-26 | 管理可视化 v1.7：路由策略列表支持后端分页（offset/limit/total）与前端翻页操作 |
 | 2026-04-26 | 管理可视化 v1.8：路由策略支持批量更新禁用模型 + JSON 导入导出（覆盖开关） |
 | 2026-04-26 | 计费支付 v1.1：下单响应补充渠道订单号/回调能力标记，新增回调验签占位与退款占位接口 |
+| 2026-04-26 | 示例插件 v1.1：`/plugins/use` 调 `ai:invoke` 时统一走 AI 记账/审计/计费链路（与 `/ai/invoke` 一致） |
+| 2026-04-26 | 交付收口基线：新增 `docs/memory/full-delivery-baseline.md` 与 `scripts/checkpoint.ps1` 里程碑自动检测 |

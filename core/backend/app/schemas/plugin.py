@@ -15,6 +15,7 @@ class UsePluginRequest(BaseModel):
     plugin_id: str
     action: str
     api_name: str | None = None
+    payload: dict[str, object] | None = None
 
 
 class PermissionCheckRequest(BaseModel):

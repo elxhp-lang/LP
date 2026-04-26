@@ -1,6 +1,8 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.orm import Session
 
 from app.schemas.ai import AIInvokeRequest
+from app.db.session import get_db
 from app.schemas.plugin import (
     ConfigurePluginRequest,
     InstallPluginRequest,
@@ -8,7 +10,6 @@ from app.schemas.plugin import (
     PluginResponse,
     UsePluginRequest,
 )
-from app.services.ai_gateway import invoke_model
 from app.services.plugin_loader import PluginLoader
 
 router = APIRouter()
@@ -47,7 +48,7 @@ def configure_plugin(payload: ConfigurePluginRequest, request: Request):
 
 
 @router.post("/use", response_model=PluginResponse)
-def use_plugin(payload: UsePluginRequest, request: Request):
+def use_plugin(payload: UsePluginRequest, request: Request, db: Session = Depends(get_db)):
     _ = request.state.tenant_id
     if not plugin_loader.has_plugin(payload.plugin_id):
         raise HTTPException(status_code=404, detail=f"plugin '{payload.plugin_id}' is not installed")
@@ -62,13 +63,23 @@ def use_plugin(payload: UsePluginRequest, request: Request):
         except PermissionError as exc:
             raise HTTPException(status_code=403, detail=str(exc)) from exc
         if payload.api_name == "ai:invoke":
-            ai_output = invoke_model(
+            # Route plugin-side invoke through the same AI pipeline so
+            # quota/audit/billing behavior is consistent with /api/v1/ai/invoke.
+            from app.api.routes.ai import invoke_ai
+
+            ai_input = dict(runtime.config)
+            if payload.payload:
+                ai_input.update(payload.payload)
+            ai_result = invoke_ai(
                 AIInvokeRequest(
                     plugin_id=payload.plugin_id,
                     task_type=payload.action,
-                    payload=runtime.config,
+                    payload=ai_input,
                 ),
+                request=request,
+                db=db,
             )
+            ai_output = ai_result.model_dump()
     runtime = plugin_loader.use_plugin(payload.plugin_id, payload.action)
     return PluginResponse(
         plugin_id=runtime.plugin_id,
