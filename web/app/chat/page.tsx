@@ -340,6 +340,7 @@ export default function ChatPage() {
             {aiAuditItems.map((item) => (
               <li key={item.id} style={{ marginBottom: 4 }}>
                 [{item.status === "success" ? "OK" : "ERR"}] {item.plugin_id} / {item.task_type}
+                {item.model ? ` / ${item.model}` : ""}
                 {item.status_code ? ` / ${item.status_code}` : ""}
                 {item.error_message ? ` / ${item.error_message}` : ""}
               </li>

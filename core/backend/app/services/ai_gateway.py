@@ -25,7 +25,12 @@ def _stub_response(payload: AIInvokeRequest, note: str | None = None) -> dict[st
     return {"model": "stub", "output": out}
 
 
-def _openai_compatible_invoke(payload: AIInvokeRequest) -> dict[str, Any]:
+def _resolve_model_for_task(task_type: str) -> str:
+    cfg = get_ai_settings()
+    return cfg.task_model_map.get(task_type.lower(), cfg.model)
+
+
+def _openai_compatible_invoke(payload: AIInvokeRequest, model_name: str) -> dict[str, Any]:
     cfg = get_ai_settings()
     base = cfg.base_url or "https://api.openai.com"
     url = _chat_completions_url(base)
@@ -38,7 +43,7 @@ def _openai_compatible_invoke(payload: AIInvokeRequest) -> dict[str, Any]:
         ensure_ascii=False,
     )
     body = {
-        "model": cfg.model,
+        "model": model_name,
         "messages": [
             {
                 "role": "system",
@@ -63,7 +68,8 @@ def _openai_compatible_invoke(payload: AIInvokeRequest) -> dict[str, Any]:
     except (KeyError, IndexError, TypeError):
         text = json.dumps(data, ensure_ascii=False)[:4000]
     return {
-        "model": cfg.model,
+        "model": model_name,
+        "provider": cfg.provider,
         "output": {
             "message": text,
             "pluginId": payload.plugin_id,
@@ -75,9 +81,13 @@ def _openai_compatible_invoke(payload: AIInvokeRequest) -> dict[str, Any]:
 def invoke_model(payload: AIInvokeRequest) -> dict[str, Any]:
     cfg = get_ai_settings()
     prov = cfg.provider
+    model_name = _resolve_model_for_task(payload.task_type)
 
     if prov in ("stub", "none", ""):
-        return _stub_response(payload)
+        result = _stub_response(payload)
+        result["provider"] = "stub"
+        result["route_model"] = model_name
+        return result
 
     if prov in ("openai_compatible", "openai", "deepseek"):
         if not cfg.api_key:
@@ -91,11 +101,15 @@ def invoke_model(payload: AIInvokeRequest) -> dict[str, Any]:
                 note="已配置密钥但缺少 AI_BASE_URL（例如 https://api.deepseek.com）。",
             )
         try:
-            return _openai_compatible_invoke(payload)
+            result = _openai_compatible_invoke(payload, model_name=model_name)
+            result["route_model"] = model_name
+            return result
         except httpx.HTTPStatusError as exc:
             detail = exc.response.text[:2000] if exc.response is not None else str(exc)
             return {
-                "model": cfg.model,
+                "model": model_name,
+                "provider": cfg.provider,
+                "route_model": model_name,
                 "output": {
                     "message": "upstream http error",
                     "pluginId": payload.plugin_id,
@@ -106,7 +120,9 @@ def invoke_model(payload: AIInvokeRequest) -> dict[str, Any]:
             }
         except (httpx.RequestError, ValueError, KeyError) as exc:
             return {
-                "model": cfg.model,
+                "model": model_name,
+                "provider": cfg.provider,
+                "route_model": model_name,
                 "output": {
                     "message": "ai request failed",
                     "pluginId": payload.plugin_id,
@@ -115,4 +131,7 @@ def invoke_model(payload: AIInvokeRequest) -> dict[str, Any]:
                 },
             }
 
-    return _stub_response(payload, note=f"未知 AI_PROVIDER={prov!r}，使用 stub。")
+    result = _stub_response(payload, note=f"未知 AI_PROVIDER={prov!r}，使用 stub。")
+    result["provider"] = "stub"
+    result["route_model"] = model_name
+    return result

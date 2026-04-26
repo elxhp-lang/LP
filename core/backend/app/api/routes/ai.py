@@ -16,7 +16,6 @@ from app.schemas.ai import (
     AIUsageSummaryResponse,
 )
 from app.services.ai_gateway import invoke_model
-from app.core.config import get_ai_settings
 
 router = APIRouter()
 
@@ -59,7 +58,6 @@ def invoke_ai(payload: AIInvokeRequest, request: Request, db: Session = Depends(
     output_preview = str(output.get("message", ""))[:1000]
     status_code = str(output.get("status_code", ""))[:20]
     error_message = str(output.get("error", ""))[:1000]
-    cfg = get_ai_settings()
     event = AIUsageEvent(
         tenant_id=tenant_id,
         plugin_id=payload.plugin_id,
@@ -71,8 +69,8 @@ def invoke_ai(payload: AIInvokeRequest, request: Request, db: Session = Depends(
         tenant_id=tenant_id,
         plugin_id=payload.plugin_id,
         task_type=payload.task_type,
-        provider=cfg.provider or "stub",
-        model=str(result.get("model", ""))[:120],
+        provider=str(result.get("provider", "stub"))[:80],
+        model=str(result.get("route_model", result.get("model", "")))[:120],
         status=status,
         status_code=status_code,
         error_message=error_message,
