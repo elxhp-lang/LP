@@ -17,6 +17,9 @@ class RBACMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next) -> Response:
         if request.url.path.startswith("/api/"):
+            # 允许 CORS 预检请求直接通过，避免浏览器在真正请求前被租户头校验阻断。
+            if request.method == "OPTIONS":
+                return await call_next(request)
             tenant_id = request.headers.get("x-tenant-id")
             if not tenant_id:
                 return JSONResponse(
