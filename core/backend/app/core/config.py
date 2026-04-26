@@ -1,3 +1,6 @@
+import os
+from dataclasses import dataclass
+
 from pydantic import BaseModel
 
 
@@ -9,3 +12,22 @@ class Settings(BaseModel):
 
 
 settings = Settings()
+
+
+@dataclass(frozen=True)
+class AISettings:
+    """每次调用时读取环境变量，便于测试与进程外改配置。"""
+
+    provider: str
+    api_key: str | None
+    base_url: str | None
+    model: str
+
+
+def get_ai_settings() -> AISettings:
+    return AISettings(
+        provider=(os.environ.get("AI_PROVIDER") or "stub").lower().strip(),
+        api_key=os.environ.get("AI_API_KEY") or None,
+        base_url=(os.environ.get("AI_BASE_URL") or "").strip() or None,
+        model=(os.environ.get("AI_MODEL") or "gpt-3.5-turbo").strip(),
+    )

@@ -30,6 +30,8 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
+**AI 网关（可选）**：默认不连外网。复制 `core/backend/.env.example` 为 `.env` 并按需设置 `AI_PROVIDER`、`AI_API_KEY`、`AI_BASE_URL`、`AI_MODEL`（例如 DeepSeek：`https://api.deepseek.com` + `deepseek-chat`）。`POST /api/v1/ai/invoke` 会按配置走 **stub** 或 **OpenAI 兼容** Chat Completions。
+
 ### Web
 
 ```bash

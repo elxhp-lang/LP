@@ -156,6 +156,7 @@
 | 工作流详情 | GET | `/api/v1/workflows/{workflow_id}` | - | 详情与只读步骤（预留扩展 GET 列表已含 definition） |
 | 市场目录 | GET | `/api/v1/marketplace/plugins` | - | `/market` 卡片列表 |
 | 市场详情 | GET | `/api/v1/marketplace/plugins/{plugin_id}` | - | 详情页预留（当前可与列表同屏展示） |
+| AI 调度 | POST | `/api/v1/ai/invoke` | `plugin_id`, `task_type`, `payload` | 插件/内部调用；后端按 `AI_PROVIDER` 走 stub 或 OpenAI 兼容接口 |
 
 ### 6.2 预留接口（命名空间建议）
 

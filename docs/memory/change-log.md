@@ -112,3 +112,13 @@
   - 文档：`frontend-ui-spec-v1.md` §6；`development-status.md`。
 - 变更原因：打通「发现插件 → 安装 → 控制台配置」演示路径；上架/计费仍后置，避免一次引入过多表结构。
 - 影响范围：OpenAPI `/api/v1/marketplace/*`；与 `PluginLoader` 已知 `plugin_id` 保持一致。
+
+### CHG-013：AI 网关 MVP（stub + OpenAI 兼容）
+- 变更内容：
+  - `app/core/config.py`：`get_ai_settings()`，每次调用读取 `AI_PROVIDER`、`AI_API_KEY`、`AI_BASE_URL`、`AI_MODEL`。
+  - `app/services/ai_gateway.py`：`stub`（默认）；`openai_compatible` / `openai` / `deepseek` 时使用 `httpx` 调用 `/v1/chat/completions`；缺密钥或 `BASE_URL` 时降级 stub 并带 `hint`；上游错误以 200 + `output.error` 反馈（便于前端统一解析）。
+  - `core/backend/.env.example`：变量说明与 DeepSeek 示例。
+  - 测试：`tests/test_ai_api.py`。
+  - 文档：`stage-2-dev-setup.md`、`development-status.md`、`frontend-ui-spec-v1.md` §6.1。
+- 变更原因：落实「核心统一调度、端侧不跑重模型」；先接通用 OpenAI 兼容协议，便于接 DeepSeek 与自建网关。
+- 影响范围：部署需知悉外呼；密钥仅走环境变量，勿入库。

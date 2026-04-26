@@ -37,13 +37,14 @@
 | 超级 Agent v1（骨架） | 可用 | `POST /api/v1/agent/recommend`、`/preflight`；规则引擎 + 契约与后续 LLM 对齐；`/chat` 表单联调 |
 | 工作流持久化 v1 | 可用 | 表 `workflows`；`GET/POST /api/v1/workflows`、`GET /{id}`；定义 JSON `version`+`steps`；`/chat` 可保存草案 |
 | 插件市场 MVP | 可用 | `GET /api/v1/marketplace/plugins`、`GET .../plugins/{id}`（静态目录）；`/market` 列表并调用既有 `POST /api/v1/plugins/install` |
+| AI 网关 MVP | 可用 | `POST /api/v1/ai/invoke`：`stub`（默认）或 `openai_compatible`（`AI_*` 环境变量，兼容 DeepSeek/OpenAI 类接口） |
 | 前端规范 | 草案 | `frontend-ui-spec-v1.md`，确认后可标为 frozen |
 | 自动化验证 | 已跑通 | 后端 `pytest`（含 projects API）；**接手后请在 `core/backend` 下定期执行** |
 
 ### 最近一次自动化验证（由开发侧执行，非业务方操作）
 
 - 命令：`cd core/backend && .venv\Scripts\python -m pytest -q`  
-- 结果：**17 passed**（含市场、工作流、Agent、context、projects、插件等）  
+- 结果：**20 passed**（含 AI 网关、市场、工作流、Agent、context、projects、插件等）  
 - 健康检查：`GET http://127.0.0.1:8000/health` → **200**（需本地已启动后端）  
 
 > **数据库说明**：若在增加 `projects` 表之前已有 `lp.db`，需**重启后端**或确保启动时执行 `init_db()`，以便 SQLite `create_all` 创建新表。
@@ -60,7 +61,7 @@
 4. ~~**工作流 v1**：线性步骤存储 + 列表/只读展示 + 对话页保存。~~（已完成；后续 DAG 编辑、执行态、日志）  
 5. **插件市场扩展**：上架审核、订单、搜索与分页（当前为静态目录 + 安装闭环）。  
 6. **移动端**：执行与查看优先，API 与 Web 共用。  
-7. **AI 网关**：Provider 可插拔，接入 DeepSeek 等。  
+7. **AI 网关进阶**：调用配额、用量统计、审计日志、多模型路由（当前已具备 stub + OpenAI 兼容 HTTP）。  
 8. **示例插件做实**：真实模型调用、评测与计费扣次。  
 
 ### 给业务方（非技术）
@@ -76,6 +77,7 @@
 | 位置 | 内容 |
 |------|------|
 | `web/.env.example` | `NEXT_PUBLIC_API_BASE_URL`、`NEXT_PUBLIC_TENANT_ID` 等 |
+| `core/backend/.env.example` | `AI_PROVIDER`、`AI_API_KEY`、`AI_BASE_URL`、`AI_MODEL`（可选） |
 | 后端默认库 | `core/backend/lp.db`（SQLite，开发用） |
 | 当前项目（前端） | `localStorage` 键：`lp_current_project_id` |
 
@@ -98,3 +100,4 @@
 | 2026-04-26 | 超级 Agent：`/api/v1/agent/recommend` & `preflight`，`/chat` 联调；`pytest` 11 passed |
 | 2026-04-26 | 工作流：`workflows` API、`/workflow` 只读页、`/chat` 保存；`pytest` 14 passed |
 | 2026-04-26 | 市场：`/api/v1/marketplace/plugins`、`/market` 联调安装；`pytest` 17 passed |
+| 2026-04-26 | AI 网关：`openai_compatible` + 环境变量、`core/backend/.env.example`；`pytest` 20 passed |
