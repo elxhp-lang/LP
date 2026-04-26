@@ -181,3 +181,12 @@
   - 测试扩展：`tests/test_billing_api.py` 覆盖渠道查询、外部渠道 pending->confirm、钱包直付。
 - 变更原因：提前固定渠道抽象与订单接口，后续接真实支付宝/微信网关时只需替换实现层。
 - 影响范围：`/api/v1/billing/*` 接口扩展；`plugin_purchases.status` 引入 `pending/paid/failed` 流转。
+
+### CHG-021：订单状态页与支付结果自动刷新
+- 变更内容：
+  - 后端新增 `GET /api/v1/billing/purchases/{order_id}`。
+  - 前端新增 `/billing/orders/[orderId]`：每 3 秒自动刷新待支付订单状态；提供模拟支付成功/失败按钮（调用 `checkout/confirm`）。
+  - 市场详情页下单后自动跳转到订单状态页，形成“下单 -> 看状态 -> 完成支付 -> 去安装”闭环。
+  - 测试扩展：`tests/test_billing_api.py` 新增订单详情查询与 404 用例。
+- 变更原因：把支付链路从“仅下单”升级为“可观察状态流转”，便于联调与演示。
+- 影响范围：新增动态路由 `/billing/orders/[orderId]`；billing API 增加订单详情读取能力。

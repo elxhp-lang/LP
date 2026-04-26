@@ -69,6 +69,20 @@ def list_purchases(request: Request, db: Session = Depends(get_db)):
     return rows
 
 
+@router.get("/purchases/{order_id}", response_model=PurchaseResponse)
+def get_purchase(order_id: str, request: Request, db: Session = Depends(get_db)):
+    tenant_id = request.state.tenant_id
+    row = db.scalar(
+        select(PluginPurchase).where(
+            PluginPurchase.id == order_id,
+            PluginPurchase.tenant_id == tenant_id,
+        ),
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="order not found")
+    return row
+
+
 @router.post("/purchase", response_model=PurchaseResponse)
 def create_purchase(payload: PurchaseCreateRequest, request: Request, db: Session = Depends(get_db)):
     tenant_id = request.state.tenant_id

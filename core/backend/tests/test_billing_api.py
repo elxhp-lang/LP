@@ -81,6 +81,9 @@ def test_channels_checkout_and_confirm():
     )
     assert r.status_code == 200
     assert r.json()["status"] == "paid"
+    r = client.get(f"/api/v1/billing/purchases/{order['order_id']}", headers={"x-tenant-id": tenant})
+    assert r.status_code == 200
+    assert r.json()["status"] == "paid"
 
     # Wallet channel settles immediately
     client.post(
@@ -100,3 +103,9 @@ def test_channels_checkout_and_confirm():
     )
     assert r.status_code == 200
     assert r.json()["status"] == "paid"
+
+
+def test_get_purchase_404():
+    tenant = f"test-tenant-billing-{uuid4()}"
+    r = client.get("/api/v1/billing/purchases/not-found", headers={"x-tenant-id": tenant})
+    assert r.status_code == 404

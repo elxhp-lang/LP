@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { apiGet, apiPost } from "@/lib/api";
@@ -20,6 +20,7 @@ type PluginDetail = {
 
 export default function MarketPluginDetailPage() {
   const params = useParams<{ pluginId: string }>();
+  const router = useRouter();
   const pluginId = typeof params?.pluginId === "string" ? params.pluginId : "";
   const [detail, setDetail] = useState<PluginDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -100,15 +101,20 @@ export default function MarketPluginDetailPage() {
       return;
     }
     const data = res.data as {
+      order_id?: unknown;
       status?: unknown;
       next_action?: unknown;
       pay_url?: unknown;
     };
+    const orderId = typeof data.order_id === "string" ? data.order_id : "";
     const status = typeof data.status === "string" ? data.status : "unknown";
     const nextAction = typeof data.next_action === "string" ? data.next_action : "";
     const payUrl = typeof data.pay_url === "string" ? data.pay_url : "";
     if (status === "pending" && payUrl) {
       setBanner(`订单已创建，请在${payChannel === "ALIPAY" ? "支付宝" : "微信"}完成支付（占位链接）：${payUrl}`);
+      if (orderId) {
+        router.push(`/billing/orders/${encodeURIComponent(orderId)}`);
+      }
     } else if (status === "paid") {
       setBanner("已支付完成，可继续安装与配置插件。");
       const w = await apiGet("/api/v1/billing/wallet");
@@ -118,6 +124,9 @@ export default function MarketPluginDetailPage() {
       }
     } else {
       setBanner(`下单结果：${status}${nextAction ? `（${nextAction}）` : ""}`);
+      if (orderId) {
+        router.push(`/billing/orders/${encodeURIComponent(orderId)}`);
+      }
     }
   };
 
@@ -208,22 +217,22 @@ export default function MarketPluginDetailPage() {
             >
               {purchasing ? "下单中…" : "下单支付（占位）"}
             </button>
-          <button
-            type="button"
-            disabled={installing}
-            onClick={() => void install()}
-            style={{
-              padding: "10px 16px",
-              borderRadius: "var(--radius-control)",
-              border: "1px solid var(--color-border-strong)",
-              background: "linear-gradient(180deg, rgba(14,116,144,0.45), rgba(30,64,175,0.3))",
-              color: "var(--color-text-primary)",
-              cursor: installing ? "wait" : "pointer",
-              marginTop: "var(--space-sm)",
-            }}
-          >
-            {installing ? "安装中…" : "安装到租户"}
-          </button>
+            <button
+              type="button"
+              disabled={installing}
+              onClick={() => void install()}
+              style={{
+                padding: "10px 16px",
+                borderRadius: "var(--radius-control)",
+                border: "1px solid var(--color-border-strong)",
+                background: "linear-gradient(180deg, rgba(14,116,144,0.45), rgba(30,64,175,0.3))",
+                color: "var(--color-text-primary)",
+                cursor: installing ? "wait" : "pointer",
+                marginTop: "var(--space-sm)",
+              }}
+            >
+              {installing ? "安装中…" : "安装到租户"}
+            </button>
           </div>
         </article>
       )}
