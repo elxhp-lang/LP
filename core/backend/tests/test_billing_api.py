@@ -73,6 +73,8 @@ def test_channels_checkout_and_confirm():
     assert order["status"] == "pending"
     assert order["pay_channel"] == "ALIPAY"
     assert isinstance(order["pay_url"], str)
+    assert isinstance(order["provider_order_no"], str)
+    assert order["callback_verify_required"] is True
 
     r = client.post(
         "/api/v1/billing/checkout/confirm",
@@ -81,6 +83,76 @@ def test_channels_checkout_and_confirm():
     )
     assert r.status_code == 200
     assert r.json()["status"] == "paid"
+
+
+def test_checkout_callback_and_refund_placeholder():
+    tenant = f"test-tenant-billing-{uuid4()}"
+    headers = {"x-tenant-id": tenant}
+    created = client.post(
+        "/api/v1/billing/checkout",
+        headers=headers,
+        json={
+            "plugin_id": "plugin.translation.gpt",
+            "amount": 88,
+            "currency": "CNY",
+            "pay_channel": "WECHAT_PAY",
+        },
+    )
+    assert created.status_code == 200
+    order = created.json()
+    assert order["status"] == "pending"
+
+    bad_cb = client.post(
+        "/api/v1/billing/checkout/callback",
+        headers=headers,
+        json={
+            "order_id": order["order_id"],
+            "pay_channel": "WECHAT_PAY",
+            "provider_trade_no": "wx_trade_001",
+            "trade_status": "SUCCESS",
+            "signature": "bad_sig",
+            "signed_payload": "raw",
+            "sign_method": "RSA2",
+        },
+    )
+    assert bad_cb.status_code == 200
+    assert bad_cb.json()["verified"] is False
+    assert bad_cb.json()["action"] == "reject_callback"
+
+    ok_cb = client.post(
+        "/api/v1/billing/checkout/callback",
+        headers=headers,
+        json={
+            "order_id": order["order_id"],
+            "pay_channel": "WECHAT_PAY",
+            "provider_trade_no": "wx_trade_001",
+            "trade_status": "SUCCESS",
+            "signature": "mock_valid_signature",
+            "signed_payload": "raw",
+            "sign_method": "RSA2",
+        },
+    )
+    assert ok_cb.status_code == 200
+    assert ok_cb.json()["verified"] is True
+    assert ok_cb.json()["action"] == "mark_paid"
+
+    paid_order = client.get(f"/api/v1/billing/purchases/{order['order_id']}", headers=headers)
+    assert paid_order.status_code == 200
+    assert paid_order.json()["status"] == "paid"
+
+    refund = client.post(
+        "/api/v1/billing/refund",
+        headers=headers,
+        json={
+            "order_id": order["order_id"],
+            "amount": 20,
+            "reason": "customer request",
+            "payout_channel": "ALIPAY",
+        },
+    )
+    assert refund.status_code == 200
+    assert refund.json()["ok"] is True
+    assert refund.json()["status"] == "pending"
     r = client.get(f"/api/v1/billing/purchases/{order['order_id']}", headers={"x-tenant-id": tenant})
     assert r.status_code == 200
     assert r.json()["status"] == "paid"
@@ -103,6 +175,7 @@ def test_channels_checkout_and_confirm():
     )
     assert r.status_code == 200
     assert r.json()["status"] == "paid"
+    assert r.json()["callback_verify_required"] is False
 
 
 def test_get_purchase_404():

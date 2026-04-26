@@ -8,11 +8,15 @@ from app.db.session import get_db
 from app.models.billing import PluginPurchase, Wallet
 from app.schemas.billing import (
     BillingChannelsResponse,
+    CheckoutCallbackRequest,
+    CheckoutCallbackResponse,
     CheckoutConfirmRequest,
     CheckoutCreateRequest,
     CheckoutCreateResponse,
     PurchaseCreateRequest,
     PurchaseResponse,
+    RefundCreateRequest,
+    RefundCreateResponse,
     WalletResponse,
     WalletTopupRequest,
 )
@@ -143,6 +147,10 @@ def create_checkout(payload: CheckoutCreateRequest, request: Request, db: Sessio
             pay_channel=payload.pay_channel,
             status=purchase.status,
             next_action="install_or_configure",
+            provider_order_no=f"wallet_{purchase.id}",
+            callback_url="/api/v1/billing/checkout/callback",
+            callback_verify_required=False,
+            refund_supported=True,
         )
 
     purchase = PluginPurchase(
@@ -157,6 +165,8 @@ def create_checkout(payload: CheckoutCreateRequest, request: Request, db: Sessio
     db.commit()
     db.refresh(purchase)
 
+    channel_prefix = "ali" if payload.pay_channel == "ALIPAY" else "wx"
+    provider_order_no = f"{channel_prefix}_{purchase.id}"
     pay_url = f"https://pay.example.com/{payload.pay_channel.lower()}/{purchase.id}"
     return CheckoutCreateResponse(
         order_id=purchase.id,
@@ -168,6 +178,10 @@ def create_checkout(payload: CheckoutCreateRequest, request: Request, db: Sessio
         next_action="open_provider_cashier",
         pay_url=pay_url,
         qr_code=pay_url,
+        provider_order_no=provider_order_no,
+        callback_url="/api/v1/billing/checkout/callback",
+        callback_verify_required=True,
+        refund_supported=True,
     )
 
 
@@ -187,3 +201,82 @@ def confirm_checkout(payload: CheckoutConfirmRequest, request: Request, db: Sess
     db.commit()
     db.refresh(row)
     return row
+
+
+@router.post("/checkout/callback", response_model=CheckoutCallbackResponse)
+def checkout_callback(payload: CheckoutCallbackRequest, request: Request, db: Session = Depends(get_db)):
+    tenant_id = request.state.tenant_id
+    row = db.scalar(
+        select(PluginPurchase).where(
+            PluginPurchase.id == payload.order_id,
+            PluginPurchase.tenant_id == tenant_id,
+        ),
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="order not found")
+
+    verified = payload.signature == "mock_valid_signature"
+    if not verified:
+        return CheckoutCallbackResponse(
+            ok=False,
+            verified=False,
+            order_id=payload.order_id,
+            pay_channel=payload.pay_channel,
+            provider_trade_no=payload.provider_trade_no,
+            trade_status=payload.trade_status,
+            action="reject_callback",
+            message="signature verify failed",
+        )
+
+    success_states = {"TRADE_SUCCESS", "SUCCESS", "PAY_SUCCESS"}
+    if payload.trade_status.upper() in success_states:
+        row.status = "paid"
+        db.add(row)
+        db.commit()
+        action = "mark_paid"
+    else:
+        action = "keep_pending"
+    return CheckoutCallbackResponse(
+        ok=True,
+        verified=True,
+        order_id=payload.order_id,
+        pay_channel=payload.pay_channel,
+        provider_trade_no=payload.provider_trade_no,
+        trade_status=payload.trade_status,
+        action=action,
+        message="callback accepted (placeholder verification)",
+    )
+
+
+@router.post("/refund", response_model=RefundCreateResponse)
+def create_refund(payload: RefundCreateRequest, request: Request, db: Session = Depends(get_db)):
+    tenant_id = request.state.tenant_id
+    row = db.scalar(
+        select(PluginPurchase).where(
+            PluginPurchase.id == payload.order_id,
+            PluginPurchase.tenant_id == tenant_id,
+        ),
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="order not found")
+    if row.status != "paid":
+        return RefundCreateResponse(
+            ok=False,
+            refund_id="",
+            order_id=payload.order_id,
+            amount=payload.amount,
+            payout_channel=payload.payout_channel,
+            status="rejected",
+            next_action="wait_order_paid",
+            message="refund rejected: order is not paid",
+        )
+    return RefundCreateResponse(
+        ok=True,
+        refund_id=str(uuid4()),
+        order_id=payload.order_id,
+        amount=payload.amount,
+        payout_channel=payload.payout_channel,
+        status="pending",
+        next_action="provider_refund_processing",
+        message="refund accepted as placeholder, pending provider integration",
+    )

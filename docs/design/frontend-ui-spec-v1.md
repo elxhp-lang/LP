@@ -167,6 +167,8 @@
 | 创建购买记录（占位） | POST | `/api/v1/billing/purchase` | `plugin_id`, `amount`, `currency` | 购买按钮状态与提示 |
 | 创建支付订单 | POST | `/api/v1/billing/checkout` | `plugin_id`,`amount`,`currency`,`pay_channel` | 返回订单状态、下一步动作、收银台链接占位 |
 | 支付结果确认（回调占位） | POST | `/api/v1/billing/checkout/confirm` | `order_id`,`paid`,`provider_trade_no?` | 更新订单为 `paid/failed` |
+| 支付渠道回调验签（占位） | POST | `/api/v1/billing/checkout/callback` | `order_id`,`pay_channel`,`provider_trade_no`,`trade_status`,`signature`,`signed_payload`,`sign_method?` | 验签成功后更新订单状态（占位实现） |
+| 退款申请（占位） | POST | `/api/v1/billing/refund` | `order_id`,`amount`,`reason?`,`payout_channel` | 返回退款受理状态（待接真实渠道） |
 | 订单详情 | GET | `/api/v1/billing/purchases/{order_id}` | - | `/billing/orders/[orderId]` 状态页自动刷新，并在已支付后触发安装 |
 | 购买列表（占位） | GET | `/api/v1/billing/purchases` | - | 订单页预留 |
 | 购买回跳预检 | GET（前端路由参数） | `/chat?autopreflight=1` | - | 从购买链路返回对话后自动再跑 preflight |
