@@ -171,6 +171,8 @@
 | 推荐流程执行（前端编排） | POST（逐步） | `/api/v1/plugins/use` | `plugin_id`,`action`,`api_name=ai:invoke` | 聊天页“一键运行推荐流程”逐步执行并显示日志 |
 | 执行摘要卡（前端状态） | localStorage | `lp_last_flow_run_summary` | - | 聊天页展示最近一次执行成功/失败统计 |
 | AI 调度 | POST | `/api/v1/ai/invoke` | `plugin_id`, `task_type`, `payload` | 插件/内部调用；后端按 `AI_PROVIDER` 走 stub 或 OpenAI 兼容接口 |
+| AI 用量摘要 | GET | `/api/v1/ai/usage/summary` | - | 聊天页显示当月配额、已用量、成功/失败调用次数 |
+| AI 配额设置（占位） | POST | `/api/v1/ai/quota` | `quota_units` | 管理侧可调整租户月度配额（MVP 直接接口） |
 
 ### 6.2 预留接口（命名空间建议）
 

@@ -1,0 +1,31 @@
+from datetime import datetime
+from uuid import uuid4
+
+from sqlalchemy import DateTime, Integer, String, func
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.db.session import Base
+
+
+class AIUsageEvent(Base):
+    __tablename__ = "ai_usage_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    tenant_id: Mapped[str] = mapped_column(String(36), index=True)
+    plugin_id: Mapped[str] = mapped_column(String(200), index=True)
+    task_type: Mapped[str] = mapped_column(String(120))
+    units: Mapped[int] = mapped_column(Integer, default=1)
+    status: Mapped[str] = mapped_column(String(20), default="success")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), server_default=func.now(), index=True)
+
+
+class AIQuota(Base):
+    __tablename__ = "ai_quotas"
+
+    tenant_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    quota_units: Mapped[int] = mapped_column(Integer, default=1000)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )

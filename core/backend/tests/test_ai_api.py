@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock
+from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
@@ -6,13 +7,12 @@ from app.main import app
 
 client = TestClient(app)
 
-TENANT = "test-tenant-ai"
-
 
 def test_ai_invoke_stub_by_default():
+    tenant = f"test-tenant-ai-{uuid4()}"
     r = client.post(
         "/api/v1/ai/invoke",
-        headers={"x-tenant-id": TENANT},
+        headers={"x-tenant-id": tenant},
         json={
             "plugin_id": "plugin.translation.gpt",
             "task_type": "translate",
@@ -27,6 +27,7 @@ def test_ai_invoke_stub_by_default():
 
 
 def test_ai_openai_compatible_mocked(monkeypatch):
+    tenant = f"test-tenant-ai-{uuid4()}"
     monkeypatch.setenv("AI_PROVIDER", "openai_compatible")
     monkeypatch.setenv("AI_API_KEY", "sk-test")
     monkeypatch.setenv("AI_BASE_URL", "https://api.example.com")
@@ -43,7 +44,7 @@ def test_ai_openai_compatible_mocked(monkeypatch):
 
     r = client.post(
         "/api/v1/ai/invoke",
-        headers={"x-tenant-id": TENANT},
+        headers={"x-tenant-id": tenant},
         json={
             "plugin_id": "plugin.translation.gpt",
             "task_type": "translate",
@@ -57,13 +58,14 @@ def test_ai_openai_compatible_mocked(monkeypatch):
 
 
 def test_ai_openai_missing_key_falls_back(monkeypatch):
+    tenant = f"test-tenant-ai-{uuid4()}"
     monkeypatch.setenv("AI_PROVIDER", "openai_compatible")
     monkeypatch.delenv("AI_API_KEY", raising=False)
     monkeypatch.setenv("AI_BASE_URL", "https://api.example.com")
 
     r = client.post(
         "/api/v1/ai/invoke",
-        headers={"x-tenant-id": TENANT},
+        headers={"x-tenant-id": tenant},
         json={
             "plugin_id": "p",
             "task_type": "t",
@@ -73,3 +75,31 @@ def test_ai_openai_missing_key_falls_back(monkeypatch):
     assert r.status_code == 200
     assert r.json()["model"] == "stub"
     assert "hint" in r.json()["output"]
+
+
+def test_ai_usage_summary_and_quota_update():
+    tenant = f"test-tenant-ai-{uuid4()}"
+    headers = {"x-tenant-id": tenant}
+
+    init_summary = client.get("/api/v1/ai/usage/summary", headers=headers)
+    assert init_summary.status_code == 200
+    assert init_summary.json()["quota_units"] == 1000
+    assert init_summary.json()["used_units"] == 0
+
+    client.post(
+        "/api/v1/ai/invoke",
+        headers=headers,
+        json={
+            "plugin_id": "plugin.translation.gpt",
+            "task_type": "translate",
+            "payload": {"text": "hello"},
+        },
+    )
+    after_invoke = client.get("/api/v1/ai/usage/summary", headers=headers)
+    assert after_invoke.status_code == 200
+    assert after_invoke.json()["calls"] >= 1
+    assert after_invoke.json()["used_units"] >= 1
+
+    updated = client.post("/api/v1/ai/quota", headers=headers, json={"quota_units": 50})
+    assert updated.status_code == 200
+    assert updated.json()["quota_units"] == 50

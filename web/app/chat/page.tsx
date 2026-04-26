@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { apiPost } from "@/lib/api";
+import { apiGet, apiPost } from "@/lib/api";
 
 type RecommendPayload = {
   intent_summary: string;
@@ -42,6 +42,16 @@ type FlowRunSummary = {
   firstFailedStepTitle: string | null;
 };
 
+type AIUsageSummary = {
+  period: string;
+  quota_units: number;
+  used_units: number;
+  remaining_units: number;
+  calls: number;
+  success_calls: number;
+  failed_calls: number;
+};
+
 export default function ChatPage() {
   const [message, setMessage] = useState("我是跨境卖家，需要翻译商品详情并看欧洲市场趋势");
   const [loading, setLoading] = useState(false);
@@ -52,6 +62,14 @@ export default function ChatPage() {
   const [flowLogs, setFlowLogs] = useState<FlowRunLog[]>([]);
   const [flowReadyHint, setFlowReadyHint] = useState<string | null>(null);
   const [lastRunSummary, setLastRunSummary] = useState<FlowRunSummary | null>(null);
+  const [aiUsage, setAiUsage] = useState<AIUsageSummary | null>(null);
+
+  const refreshAiUsage = async () => {
+    const res = await apiGet("/api/v1/ai/usage/summary");
+    if (res.ok && res.data && typeof res.data === "object" && "quota_units" in res.data) {
+      setAiUsage(res.data as AIUsageSummary);
+    }
+  };
 
   const runPreflightByIds = async (ids: string[]) => {
     const res = await apiPost("/api/v1/agent/preflight", { plugin_ids: ids });
@@ -133,6 +151,7 @@ export default function ChatPage() {
         // ignore malformed local storage
       }
     }
+    void refreshAiUsage();
   }, []);
 
   const onSaveWorkflow = async () => {
@@ -195,6 +214,7 @@ export default function ChatPage() {
     if (typeof window !== "undefined") {
       window.localStorage.setItem("lp_last_flow_run_summary", JSON.stringify(summary));
     }
+    void refreshAiUsage();
   };
 
   return (
@@ -260,6 +280,23 @@ export default function ChatPage() {
           ) : (
             <span style={{ color: "var(--color-success)" }}> ｜全部通过，可直接复用该流程</span>
           )}
+        </div>
+      ) : null}
+      {aiUsage ? (
+        <div
+          style={{
+            marginBottom: "var(--space-md)",
+            padding: "var(--space-sm) var(--space-md)",
+            borderRadius: "var(--radius-control)",
+            border: "1px solid var(--color-border-subtle)",
+            background: "var(--color-bg-surface)",
+            color: "var(--color-text-secondary)",
+            fontSize: 13,
+          }}
+        >
+          AI 用量（{aiUsage.period}）：已用 {aiUsage.used_units}/{aiUsage.quota_units}，剩余{" "}
+          {aiUsage.remaining_units} ｜调用 {aiUsage.calls} 次（成功 {aiUsage.success_calls} / 失败{" "}
+          {aiUsage.failed_calls}）
         </div>
       ) : null}
 
