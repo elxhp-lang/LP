@@ -1,9 +1,9 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { apiPost } from "@/lib/api";
+import { apiGet, apiPost } from "@/lib/api";
 
 type PluginRow = {
   id: string;
@@ -19,6 +19,28 @@ type ApiResult = {
 };
 
 type PluginStatus = "未安装" | "已安装" | "已配置" | "运行中" | "已卸载" | "失败";
+
+type AIBillingRecord = {
+  id: string;
+  plugin_id: string;
+  task_type: string;
+  billed_units: number;
+  unit_price: number;
+  billed_amount: number;
+  status: string;
+  reason: string;
+  wallet_balance_after: number;
+  created_at: string;
+};
+
+type AIRoutePolicy = {
+  id: string;
+  plugin_id: string;
+  task_type: string;
+  model_chain: string;
+  disabled_models: string;
+  updated_at: string;
+};
 
 const demoPlugins: PluginRow[] = [
   {
@@ -50,6 +72,8 @@ export default function PluginDashboardPage() {
     "plugin.market.analysis.composer": "未安装",
   });
   const [activityLogs, setActivityLogs] = useState<string[]>([]);
+  const [aiBillingRecords, setAiBillingRecords] = useState<AIBillingRecord[]>([]);
+  const [aiRoutePolicies, setAiRoutePolicies] = useState<AIRoutePolicy[]>([]);
 
   const actionHint = useMemo(() => {
     if (!loadingAction) {
@@ -57,6 +81,25 @@ export default function PluginDashboardPage() {
     }
     return `执行中：${loadingAction}`;
   }, [loadingAction]);
+
+  const refreshAiOpsPanels = async () => {
+    const [recordsRes, policiesRes] = await Promise.all([
+      apiGet("/api/v1/ai/billing/records?offset=0&limit=6"),
+      apiGet("/api/v1/ai/route/policies"),
+    ]);
+    if (recordsRes.ok && recordsRes.data && typeof recordsRes.data === "object" && "items" in recordsRes.data) {
+      const items = (recordsRes.data as { items: AIBillingRecord[] }).items;
+      setAiBillingRecords(Array.isArray(items) ? items : []);
+    }
+    if (policiesRes.ok && policiesRes.data && typeof policiesRes.data === "object" && "items" in policiesRes.data) {
+      const items = (policiesRes.data as { items: AIRoutePolicy[] }).items;
+      setAiRoutePolicies(Array.isArray(items) ? items : []);
+    }
+  };
+
+  useEffect(() => {
+    void refreshAiOpsPanels();
+  }, []);
 
   const runAction = async (
     pluginId: string,
@@ -74,6 +117,7 @@ export default function PluginDashboardPage() {
       ...prev,
       [pluginId]: result.ok ? nextStatus : "失败",
     }));
+    void refreshAiOpsPanels();
     setLoadingAction("");
   };
 
@@ -150,6 +194,7 @@ export default function PluginDashboardPage() {
     setActivityLogs((prev) =>
       [`[${now}] AI 网关试调 (${plugin.name}) -> ${ok ? "成功" : "失败"}`, ...prev].slice(0, 8),
     );
+    void refreshAiOpsPanels();
     setLoadingAction("");
   };
 
@@ -364,7 +409,7 @@ export default function PluginDashboardPage() {
         </section>
       ))}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <section
           style={{
             border: "1px solid rgba(56, 189, 248, 0.35)",
@@ -409,6 +454,52 @@ export default function PluginDashboardPage() {
               {activityLogs.map((item) => (
                 <li key={item} style={{ marginBottom: 6, color: "#bae6fd" }}>
                   {item}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section
+          style={{
+            border: "1px solid rgba(56, 189, 248, 0.35)",
+            borderRadius: 12,
+            padding: 16,
+            backgroundColor: "rgba(15,23,42,0.88)",
+          }}
+        >
+          <h3 style={{ marginTop: 0 }}>AI 计费明细（最近 6 条）</h3>
+          {aiBillingRecords.length === 0 ? (
+            <p style={{ color: "#93c5fd" }}>暂无计费记录</p>
+          ) : (
+            <ul style={{ margin: 0, paddingLeft: 18 }}>
+              {aiBillingRecords.map((item) => (
+                <li key={item.id} style={{ marginBottom: 6, color: "#bae6fd", fontSize: 13 }}>
+                  {item.plugin_id} / {item.task_type} ｜{item.billed_units}u x {item.unit_price} ={" "}
+                  {item.billed_amount} ｜{item.status} ｜余额 {item.wallet_balance_after}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section
+          style={{
+            border: "1px solid rgba(56, 189, 248, 0.35)",
+            borderRadius: 12,
+            padding: 16,
+            backgroundColor: "rgba(15,23,42,0.88)",
+          }}
+        >
+          <h3 style={{ marginTop: 0 }}>AI 路由策略概览</h3>
+          {aiRoutePolicies.length === 0 ? (
+            <p style={{ color: "#93c5fd" }}>当前租户暂无路由策略（使用默认路由）</p>
+          ) : (
+            <ul style={{ margin: 0, paddingLeft: 18 }}>
+              {aiRoutePolicies.slice(0, 6).map((item) => (
+                <li key={item.id} style={{ marginBottom: 6, color: "#bae6fd", fontSize: 13 }}>
+                  {item.plugin_id} / {item.task_type} ｜链路 {item.model_chain || "-"} ｜禁用{" "}
+                  {item.disabled_models || "-"}
                 </li>
               ))}
             </ul>
