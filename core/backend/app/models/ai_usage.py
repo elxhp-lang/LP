@@ -29,3 +29,20 @@ class AIQuota(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
+
+
+class AIAuditLog(Base):
+    __tablename__ = "ai_audit_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    tenant_id: Mapped[str] = mapped_column(String(36), index=True)
+    plugin_id: Mapped[str] = mapped_column(String(200), index=True)
+    task_type: Mapped[str] = mapped_column(String(120))
+    provider: Mapped[str] = mapped_column(String(80), default="unknown")
+    model: Mapped[str] = mapped_column(String(120), default="unknown")
+    status: Mapped[str] = mapped_column(String(20), default="success")
+    status_code: Mapped[str] = mapped_column(String(20), default="")
+    error_message: Mapped[str] = mapped_column(String(1000), default="")
+    request_preview: Mapped[str] = mapped_column(String(1000), default="")
+    output_preview: Mapped[str] = mapped_column(String(1000), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), server_default=func.now(), index=True)

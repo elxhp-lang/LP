@@ -173,6 +173,7 @@
 | AI 调度 | POST | `/api/v1/ai/invoke` | `plugin_id`, `task_type`, `payload` | 插件/内部调用；后端按 `AI_PROVIDER` 走 stub 或 OpenAI 兼容接口 |
 | AI 用量摘要 | GET | `/api/v1/ai/usage/summary` | - | 聊天页显示当月配额、已用量、成功/失败调用次数 |
 | AI 配额设置（占位） | POST | `/api/v1/ai/quota` | `quota_units` | 管理侧可调整租户月度配额（MVP 直接接口） |
+| AI 审计日志 | GET | `/api/v1/ai/audit/logs` | Query: `offset?`,`limit?` | 聊天页展示最近调用记录（状态/错误摘要） |
 
 ### 6.2 预留接口（命名空间建议）
 

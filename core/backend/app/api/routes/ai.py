@@ -1,13 +1,22 @@
 from datetime import UTC, datetime
+import json
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.models.ai_usage import AIQuota, AIUsageEvent
-from app.schemas.ai import AIInvokeRequest, AIInvokeResponse, AIQuotaUpdateRequest, AIUsageSummaryResponse
+from app.models.ai_usage import AIAuditLog, AIQuota, AIUsageEvent
+from app.schemas.ai import (
+    AIAuditLogItem,
+    AIAuditLogListResponse,
+    AIInvokeRequest,
+    AIInvokeResponse,
+    AIQuotaUpdateRequest,
+    AIUsageSummaryResponse,
+)
 from app.services.ai_gateway import invoke_model
+from app.core.config import get_ai_settings
 
 router = APIRouter()
 
@@ -46,6 +55,11 @@ def invoke_ai(payload: AIInvokeRequest, request: Request, db: Session = Depends(
     result = invoke_model(payload)
     output = result.get("output", {})
     status = "failed" if any(k in output for k in ("error", "status_code")) else "success"
+    request_preview = json.dumps(payload.payload, ensure_ascii=False)[:1000]
+    output_preview = str(output.get("message", ""))[:1000]
+    status_code = str(output.get("status_code", ""))[:20]
+    error_message = str(output.get("error", ""))[:1000]
+    cfg = get_ai_settings()
     event = AIUsageEvent(
         tenant_id=tenant_id,
         plugin_id=payload.plugin_id,
@@ -53,7 +67,20 @@ def invoke_ai(payload: AIInvokeRequest, request: Request, db: Session = Depends(
         units=_estimate_units(payload, result),
         status=status,
     )
+    audit = AIAuditLog(
+        tenant_id=tenant_id,
+        plugin_id=payload.plugin_id,
+        task_type=payload.task_type,
+        provider=cfg.provider or "stub",
+        model=str(result.get("model", ""))[:120],
+        status=status,
+        status_code=status_code,
+        error_message=error_message,
+        request_preview=request_preview,
+        output_preview=output_preview,
+    )
     db.add(event)
+    db.add(audit)
     db.commit()
     return AIInvokeResponse(**result)
 
@@ -112,3 +139,40 @@ def update_quota(payload: AIQuotaUpdateRequest, request: Request, db: Session = 
     db.add(quota)
     db.commit()
     return usage_summary(request=request, db=db)
+
+
+@router.get("/audit/logs", response_model=AIAuditLogListResponse)
+def list_audit_logs(
+    request: Request,
+    db: Session = Depends(get_db),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=100),
+):
+    tenant_id = request.state.tenant_id
+    rows = db.scalars(
+        select(AIAuditLog)
+        .where(AIAuditLog.tenant_id == tenant_id)
+        .order_by(AIAuditLog.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    ).all()
+    return AIAuditLogListResponse(
+        items=[
+            AIAuditLogItem(
+                id=r.id,
+                plugin_id=r.plugin_id,
+                task_type=r.task_type,
+                provider=r.provider,
+                model=r.model,
+                status=r.status,
+                status_code=r.status_code,
+                error_message=r.error_message,
+                request_preview=r.request_preview,
+                output_preview=r.output_preview,
+                created_at=r.created_at.isoformat() if r.created_at else "",
+            )
+            for r in rows
+        ],
+        offset=offset,
+        limit=limit,
+    )

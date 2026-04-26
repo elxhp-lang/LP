@@ -52,6 +52,19 @@ type AIUsageSummary = {
   failed_calls: number;
 };
 
+type AIAuditItem = {
+  id: string;
+  plugin_id: string;
+  task_type: string;
+  provider: string;
+  model: string;
+  status: string;
+  status_code: string;
+  error_message: string;
+  output_preview: string;
+  created_at: string;
+};
+
 export default function ChatPage() {
   const [message, setMessage] = useState("我是跨境卖家，需要翻译商品详情并看欧洲市场趋势");
   const [loading, setLoading] = useState(false);
@@ -63,11 +76,20 @@ export default function ChatPage() {
   const [flowReadyHint, setFlowReadyHint] = useState<string | null>(null);
   const [lastRunSummary, setLastRunSummary] = useState<FlowRunSummary | null>(null);
   const [aiUsage, setAiUsage] = useState<AIUsageSummary | null>(null);
+  const [aiAuditItems, setAiAuditItems] = useState<AIAuditItem[]>([]);
 
   const refreshAiUsage = async () => {
     const res = await apiGet("/api/v1/ai/usage/summary");
     if (res.ok && res.data && typeof res.data === "object" && "quota_units" in res.data) {
       setAiUsage(res.data as AIUsageSummary);
+    }
+  };
+
+  const refreshAiAudit = async () => {
+    const res = await apiGet("/api/v1/ai/audit/logs?offset=0&limit=5");
+    if (res.ok && res.data && typeof res.data === "object" && "items" in res.data) {
+      const items = (res.data as { items: AIAuditItem[] }).items;
+      setAiAuditItems(Array.isArray(items) ? items : []);
     }
   };
 
@@ -152,6 +174,7 @@ export default function ChatPage() {
       }
     }
     void refreshAiUsage();
+    void refreshAiAudit();
   }, []);
 
   const onSaveWorkflow = async () => {
@@ -215,6 +238,7 @@ export default function ChatPage() {
       window.localStorage.setItem("lp_last_flow_run_summary", JSON.stringify(summary));
     }
     void refreshAiUsage();
+    void refreshAiAudit();
   };
 
   return (
@@ -297,6 +321,30 @@ export default function ChatPage() {
           AI 用量（{aiUsage.period}）：已用 {aiUsage.used_units}/{aiUsage.quota_units}，剩余{" "}
           {aiUsage.remaining_units} ｜调用 {aiUsage.calls} 次（成功 {aiUsage.success_calls} / 失败{" "}
           {aiUsage.failed_calls}）
+        </div>
+      ) : null}
+      {aiAuditItems.length > 0 ? (
+        <div
+          style={{
+            marginBottom: "var(--space-md)",
+            padding: "var(--space-sm) var(--space-md)",
+            borderRadius: "var(--radius-control)",
+            border: "1px solid var(--color-border-subtle)",
+            background: "var(--color-code-bg)",
+            color: "var(--color-text-secondary)",
+            fontSize: 13,
+          }}
+        >
+          <div style={{ marginBottom: 6, color: "var(--color-text-primary)" }}>最近 AI 审计记录</div>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {aiAuditItems.map((item) => (
+              <li key={item.id} style={{ marginBottom: 4 }}>
+                [{item.status === "success" ? "OK" : "ERR"}] {item.plugin_id} / {item.task_type}
+                {item.status_code ? ` / ${item.status_code}` : ""}
+                {item.error_message ? ` / ${item.error_message}` : ""}
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
 

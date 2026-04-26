@@ -103,3 +103,30 @@ def test_ai_usage_summary_and_quota_update():
     updated = client.post("/api/v1/ai/quota", headers=headers, json={"quota_units": 50})
     assert updated.status_code == 200
     assert updated.json()["quota_units"] == 50
+
+
+def test_ai_audit_logs_list():
+    tenant = f"test-tenant-ai-{uuid4()}"
+    headers = {"x-tenant-id": tenant}
+
+    invoke = client.post(
+        "/api/v1/ai/invoke",
+        headers=headers,
+        json={
+            "plugin_id": "plugin.translation.gpt",
+            "task_type": "translate",
+            "payload": {"text": "hello audit"},
+        },
+    )
+    assert invoke.status_code == 200
+
+    logs = client.get("/api/v1/ai/audit/logs?offset=0&limit=5", headers=headers)
+    assert logs.status_code == 200
+    body = logs.json()
+    assert body["offset"] == 0
+    assert body["limit"] == 5
+    assert len(body["items"]) >= 1
+    first = body["items"][0]
+    assert first["plugin_id"] == "plugin.translation.gpt"
+    assert first["task_type"] == "translate"
+    assert first["status"] in ("success", "failed")
