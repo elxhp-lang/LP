@@ -34,7 +34,7 @@
 | Web 壳层 | 可用 | 全局 Design Token、`AppShell` 顶栏、项目下拉与新建、`/dashboard/plugins` 科技风控制台（含 **AI 网关试调** → `/api/v1/ai/invoke`） |
 | 项目请求上下文 | 可用 | 可选 Header `x-project-id`；中间件校验租户归属；`GET /api/v1/context`；前端 `apiGet`/`apiPost` 自动带头 |
 | 占位路由 | 已替代 | `/market` 已接 **目录 API + 安装**，并新增 `/market/[pluginId]` 详情页；`/chat` 已接 **Agent 推荐 + preflight**；`/workflow` 已接 **列表 + 只读步骤** |
-| 超级 Agent v1（骨架） | 可用 | `POST /api/v1/agent/recommend`、`/preflight`；规则引擎 + 契约与后续 LLM 对齐；`/chat` 表单联调 |
+| 超级 Agent v1（骨架） | 可用 | `POST /api/v1/agent/recommend`、`/preflight`；规则引擎 + 契约与后续 LLM 对齐；`preflight` 已接购买/余额闸门；`/chat` 表单联调 |
 | 工作流持久化 v1 | 可用 | 表 `workflows`；`GET/POST /api/v1/workflows`、`GET /{id}`；定义 JSON `version`+`steps`；`/chat` 可保存草案 |
 | 插件市场 MVP | 可用 | 市场支持 `q/category/offset/limit` 搜索筛选分页、`GET /api/v1/marketplace/categories`、详情页与安装闭环 |
 | AI 网关 MVP | 可用 | `POST /api/v1/ai/invoke`：`stub`（默认）或 `openai_compatible`（`AI_*` 环境变量，兼容 DeepSeek/OpenAI 类接口） |
@@ -45,7 +45,7 @@
 ### 最近一次自动化验证（由开发侧执行，非业务方操作）
 
 - 命令：`cd core/backend && .venv\Scripts\python -m pytest -q`  
-- 结果：**27 passed**（含 billing 钱包/购买、市场搜索/分类/分页、插件 use 联动 AI 网关、AI 网关、工作流、Agent、context、projects 等）  
+- 结果：**29 passed**（含 Agent preflight 计费闸门、billing 钱包/购买、市场搜索/分类/分页、插件 use 联动 AI 网关、工作流、context、projects 等）  
 - 健康检查：`GET http://127.0.0.1:8000/health` → **200**（需本地已启动后端）  
 
 > **数据库说明**：若在增加 `projects` 表之前已有 `lp.db`，需**重启后端**或确保启动时执行 `init_db()`，以便 SQLite `create_all` 创建新表。
@@ -107,3 +107,4 @@
 | 2026-04-26 | 市场详情页：`/market/[pluginId]` 联调 `GET /api/v1/marketplace/plugins/{plugin_id}` 并支持安装 |
 | 2026-04-26 | 市场扩展：`/market` 搜索/分类/分页；后端 `q/category/offset/limit` + `/categories`；`pytest` 25 passed |
 | 2026-04-26 | 计费占位：`/api/v1/billing/*`（wallet/topup/purchases/purchase），详情页新增购买按钮；`pytest` 27 passed |
+| 2026-04-26 | Agent preflight：按购买记录 + 余额判断 `allowed`，`/chat` 结构化展示结果；`pytest` 29 passed |

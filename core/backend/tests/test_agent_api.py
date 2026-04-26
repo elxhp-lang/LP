@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from uuid import uuid4
 
 from app.main import app
 
@@ -21,12 +22,59 @@ def test_agent_recommend_returns_plugins():
     assert "plugin.translation.gpt" in ids
 
 
-def test_agent_preflight_mvp_allowed():
+def test_agent_preflight_needs_purchase():
+    tenant = f"test-tenant-agent-{uuid4()}"
     r = client.post(
         "/api/v1/agent/preflight",
-        headers={"x-tenant-id": TENANT},
+        headers={"x-tenant-id": tenant},
+        json={"plugin_ids": ["plugin.translation.gpt"]},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["allowed"] is False
+    assert body["needs_purchase"] is True
+
+
+def test_agent_preflight_needs_topup_after_purchase():
+    tenant = f"test-tenant-agent-{uuid4()}"
+    r = client.post(
+        "/api/v1/billing/purchase",
+        headers={"x-tenant-id": tenant},
+        json={"plugin_id": "plugin.translation.gpt", "amount": 1, "currency": "CNY"},
+    )
+    assert r.status_code == 200
+
+    r = client.post(
+        "/api/v1/agent/preflight",
+        headers={"x-tenant-id": tenant},
+        json={"plugin_ids": ["plugin.translation.gpt"]},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["allowed"] is False
+    assert body["needs_purchase"] is False
+    assert body["needs_topup"] is True
+
+
+def test_agent_preflight_allowed_after_purchase_and_topup():
+    tenant = f"test-tenant-agent-{uuid4()}"
+    client.post(
+        "/api/v1/billing/purchase",
+        headers={"x-tenant-id": tenant},
+        json={"plugin_id": "plugin.translation.gpt", "amount": 1, "currency": "CNY"},
+    )
+    client.post(
+        "/api/v1/billing/wallet/topup",
+        headers={"x-tenant-id": tenant},
+        json={"amount": 20},
+    )
+    r = client.post(
+        "/api/v1/agent/preflight",
+        headers={"x-tenant-id": tenant},
         json={"plugin_ids": ["plugin.translation.gpt"]},
     )
     assert r.status_code == 200
     body = r.json()
     assert body["allowed"] is True
+    assert body["needs_purchase"] is False
+    assert body["needs_topup"] is False

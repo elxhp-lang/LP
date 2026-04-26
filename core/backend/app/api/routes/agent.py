@@ -1,11 +1,14 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
+from sqlalchemy.orm import Session
 
+from app.db.session import get_db
 from app.schemas.agent import (
     AgentPreflightRequest,
     AgentPreflightResponse,
     AgentRecommendRequest,
     AgentRecommendResponse,
 )
+from app.services.agent_preflight import evaluate_preflight
 from app.services.agent_recommend import recommend_from_user_message
 
 router = APIRouter()
@@ -20,17 +23,12 @@ def agent_recommend(payload: AgentRecommendRequest, request: Request):
 
 
 @router.post("/preflight", response_model=AgentPreflightResponse)
-def agent_preflight(payload: AgentPreflightRequest, request: Request):
-    """
-    运行前检查占位：后续接订单、Token、RBAC。
-    MVP 返回允许运行，并提示尚未接真实计费。
-    """
-    _ = request.state.tenant_id
+def agent_preflight(
+    payload: AgentPreflightRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """运行前检查：购买状态 + 余额占位规则。"""
+    tenant_id = request.state.tenant_id
     _ = getattr(request.state, "project_id", None)
-    _ = payload.plugin_ids
-    return AgentPreflightResponse(
-        allowed=True,
-        needs_purchase=False,
-        needs_topup=False,
-        detail="MVP：未接入真实购买/Token 校验，后续将在此统一闸门。",
-    )
+    return evaluate_preflight(db, tenant_id, payload.plugin_ids)

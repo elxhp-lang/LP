@@ -163,3 +163,12 @@
   - 文档：`development-status.md`、`frontend-ui-spec-v1.md` 交互矩阵补齐计费接口。
 - 变更原因：在真实支付接入前，先建立「余额/购买记录/购买按钮状态」接口骨架，支撑后续订单与 preflight 计费闸门。
 - 影响范围：新增 `wallets`、`plugin_purchases` 表；OpenAPI 新增 `/api/v1/billing/*`。
+
+### CHG-019：Agent preflight 接入购买与余额闸门
+- 变更内容：
+  - 后端新增 `app/services/agent_preflight.py`，预检规则：未购买 -> `needs_purchase`；已购买但余额不足 -> `needs_topup`；满足条件才 `allowed=true`。
+  - `POST /api/v1/agent/preflight` 接入 DB 与 billing 数据，不再恒放行。
+  - 测试：扩展 `tests/test_agent_api.py` 覆盖未购买、已购买但余额不足、已购买且已充值三种路径。
+  - 前端：`/chat` 将 preflight 结果结构化展示（可执行状态、原因、购买/充值标记）。
+- 变更原因：把「推荐→预检→执行」链路从文案占位提升到可执行闸门，减少误触发与无效执行。
+- 影响范围：Agent 预检行为从静态占位改为计费感知；响应契约字段不变。

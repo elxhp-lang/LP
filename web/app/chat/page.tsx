@@ -19,11 +19,18 @@ type RecommendPayload = {
   next_actions: string[];
 };
 
+type PreflightPayload = {
+  allowed: boolean;
+  needs_purchase: boolean;
+  needs_topup: boolean;
+  detail: string;
+};
+
 export default function ChatPage() {
   const [message, setMessage] = useState("我是跨境卖家，需要翻译商品详情并看欧洲市场趋势");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<RecommendPayload | null>(null);
-  const [preflight, setPreflight] = useState<unknown>(null);
+  const [preflight, setPreflight] = useState<PreflightPayload | null>(null);
   const [savingWf, setSavingWf] = useState(false);
 
   const onRecommend = async () => {
@@ -42,7 +49,24 @@ export default function ChatPage() {
   const onPreflight = async () => {
     const ids = result?.plugins.map((p) => p.plugin_id) ?? [];
     const res = await apiPost("/api/v1/agent/preflight", { plugin_ids: ids });
-    setPreflight(res.data ?? { detail: res.message, ok: res.ok });
+    if (
+      res.ok &&
+      res.data &&
+      typeof res.data === "object" &&
+      "allowed" in res.data &&
+      "needs_purchase" in res.data &&
+      "needs_topup" in res.data &&
+      "detail" in res.data
+    ) {
+      setPreflight(res.data as PreflightPayload);
+    } else {
+      setPreflight({
+        allowed: false,
+        needs_purchase: false,
+        needs_topup: false,
+        detail: typeof res.message === "string" ? res.message : "预检失败",
+      });
+    }
   };
 
   const onSaveWorkflow = async () => {
@@ -195,7 +219,7 @@ export default function ChatPage() {
       ) : null}
 
       {preflight ? (
-        <pre
+        <section
           style={{
             padding: "var(--space-md)",
             borderRadius: "var(--radius-control)",
@@ -203,11 +227,20 @@ export default function ChatPage() {
             border: "1px solid var(--color-border-subtle)",
             color: "var(--color-text-secondary)",
             fontSize: 13,
-            overflow: "auto",
+            overflow: "hidden",
           }}
         >
-          {JSON.stringify(preflight, null, 2)}
-        </pre>
+          <div style={{ marginBottom: 8 }}>
+            预检结果：
+            <strong style={{ color: preflight.allowed ? "var(--color-success)" : "var(--color-warning)" }}>
+              {preflight.allowed ? "可执行" : "暂不可执行"}
+            </strong>
+          </div>
+          <div style={{ marginBottom: 8 }}>{preflight.detail}</div>
+          <div style={{ color: "var(--color-text-muted)" }}>
+            需购买：{preflight.needs_purchase ? "是" : "否"} ｜需充值：{preflight.needs_topup ? "是" : "否"}
+          </div>
+        </section>
       ) : null}
     </main>
   );
