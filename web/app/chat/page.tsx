@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 import { apiPost } from "@/lib/api";
 
@@ -240,6 +241,16 @@ export default function ChatPage() {
           <div style={{ color: "var(--color-text-muted)" }}>
             需购买：{preflight.needs_purchase ? "是" : "否"} ｜需充值：{preflight.needs_topup ? "是" : "否"}
           </div>
+          {preflight.needs_purchase && result?.plugins?.[0] ? (
+            <p style={{ marginTop: 10 }}>
+              <Link
+                href={`/market/${encodeURIComponent(result.plugins[0].plugin_id)}`}
+                style={{ color: "var(--color-accent)", fontSize: 13 }}
+              >
+                去购买首个推荐插件：{result.plugins[0].name}
+              </Link>
+            </p>
+          ) : null}
         </section>
       ) : null}
     </main>

@@ -38,7 +38,7 @@
 | 工作流持久化 v1 | 可用 | 表 `workflows`；`GET/POST /api/v1/workflows`、`GET /{id}`；定义 JSON `version`+`steps`；`/chat` 可保存草案 |
 | 插件市场 MVP | 可用 | 市场支持 `q/category/offset/limit` 搜索筛选分页、`GET /api/v1/marketplace/categories`、详情页与安装闭环 |
 | AI 网关 MVP | 可用 | `POST /api/v1/ai/invoke`：`stub`（默认）或 `openai_compatible`（`AI_*` 环境变量，兼容 DeepSeek/OpenAI 类接口） |
-| 计费/购买占位 | 可用 | `wallet/topup/purchases/purchase` + `channels/checkout/checkout-confirm`；支付渠道优先含支付宝、微信；已增订单状态页 `/billing/orders/[orderId]` |
+| 计费/购买占位 | 可用 | `wallet/topup/purchases/purchase` + `channels/checkout/checkout-confirm`；支付渠道优先含支付宝、微信；订单状态页支持自动刷新、自动安装与回跳 |
 | 前端规范 | 草案 | `frontend-ui-spec-v1.md`，确认后可标为 frozen |
 | 自动化验证 | 已跑通 | 后端 `pytest`（含 projects API）；**接手后请在 `core/backend` 下定期执行** |
 
@@ -110,3 +110,4 @@
 | 2026-04-26 | Agent preflight：按购买记录 + 余额判断 `allowed`，`/chat` 结构化展示结果；`pytest` 29 passed |
 | 2026-04-26 | 支付渠道接口：`/billing/channels`、`/checkout`、`/checkout/confirm`（支付宝/微信/钱包）；`pytest` 30 passed |
 | 2026-04-26 | 订单状态页：`/billing/orders/[orderId]` 自动刷新，支持模拟支付成功/失败；`pytest` 31 passed |
+| 2026-04-26 | 支付闭环增强：订单页支付成功后自动安装插件，并支持回跳到来源流程（如 `/chat`） |

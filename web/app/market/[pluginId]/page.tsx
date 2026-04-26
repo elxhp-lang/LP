@@ -113,7 +113,7 @@ export default function MarketPluginDetailPage() {
     if (status === "pending" && payUrl) {
       setBanner(`订单已创建，请在${payChannel === "ALIPAY" ? "支付宝" : "微信"}完成支付（占位链接）：${payUrl}`);
       if (orderId) {
-        router.push(`/billing/orders/${encodeURIComponent(orderId)}`);
+        router.push(`/billing/orders/${encodeURIComponent(orderId)}?return_to=${encodeURIComponent("/chat")}`);
       }
     } else if (status === "paid") {
       setBanner("已支付完成，可继续安装与配置插件。");
@@ -125,7 +125,7 @@ export default function MarketPluginDetailPage() {
     } else {
       setBanner(`下单结果：${status}${nextAction ? `（${nextAction}）` : ""}`);
       if (orderId) {
-        router.push(`/billing/orders/${encodeURIComponent(orderId)}`);
+        router.push(`/billing/orders/${encodeURIComponent(orderId)}?return_to=${encodeURIComponent("/chat")}`);
       }
     }
   };

@@ -164,7 +164,7 @@
 | 创建购买记录（占位） | POST | `/api/v1/billing/purchase` | `plugin_id`, `amount`, `currency` | 购买按钮状态与提示 |
 | 创建支付订单 | POST | `/api/v1/billing/checkout` | `plugin_id`,`amount`,`currency`,`pay_channel` | 返回订单状态、下一步动作、收银台链接占位 |
 | 支付结果确认（回调占位） | POST | `/api/v1/billing/checkout/confirm` | `order_id`,`paid`,`provider_trade_no?` | 更新订单为 `paid/failed` |
-| 订单详情 | GET | `/api/v1/billing/purchases/{order_id}` | - | `/billing/orders/[orderId]` 状态页自动刷新 |
+| 订单详情 | GET | `/api/v1/billing/purchases/{order_id}` | - | `/billing/orders/[orderId]` 状态页自动刷新，并在已支付后触发安装 |
 | 购买列表（占位） | GET | `/api/v1/billing/purchases` | - | 订单页预留 |
 | AI 调度 | POST | `/api/v1/ai/invoke` | `plugin_id`, `task_type`, `payload` | 插件/内部调用；后端按 `AI_PROVIDER` 走 stub 或 OpenAI 兼容接口 |
 
