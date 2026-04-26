@@ -89,6 +89,7 @@ export default function PluginDashboardPage() {
   });
   const [routePolicyError, setRoutePolicyError] = useState<string>("");
   const [lastRoutePolicySubmit, setLastRoutePolicySubmit] = useState<RoutePolicySubmitResult | null>(null);
+  const [routePolicyKeyword, setRoutePolicyKeyword] = useState("");
 
   const actionHint = useMemo(() => {
     if (!loadingAction) {
@@ -96,6 +97,22 @@ export default function PluginDashboardPage() {
     }
     return `执行中：${loadingAction}`;
   }, [loadingAction]);
+
+  const filteredRoutePolicies = useMemo(() => {
+    const kw = routePolicyKeyword.trim().toLowerCase();
+    const sorted = [...aiRoutePolicies].sort((a, b) => {
+      const ta = Date.parse(a.updated_at || "");
+      const tb = Date.parse(b.updated_at || "");
+      return (Number.isNaN(tb) ? 0 : tb) - (Number.isNaN(ta) ? 0 : ta);
+    });
+    if (!kw) {
+      return sorted;
+    }
+    return sorted.filter((item) => {
+      const hay = `${item.plugin_id} ${item.task_type} ${item.model_chain} ${item.disabled_models}`.toLowerCase();
+      return hay.includes(kw);
+    });
+  }, [aiRoutePolicies, routePolicyKeyword]);
 
   const refreshAiOpsPanels = async () => {
     const [recordsRes, policiesRes] = await Promise.all([
@@ -568,11 +585,30 @@ export default function PluginDashboardPage() {
           }}
         >
           <h3 style={{ marginTop: 0 }}>AI 路由策略概览</h3>
+          <div style={{ marginBottom: 10 }}>
+            <input
+              value={routePolicyKeyword}
+              onChange={(event) => setRoutePolicyKeyword(event.target.value)}
+              placeholder="按插件 / 任务 / 模型关键字筛选"
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                borderRadius: 8,
+                border: "1px solid rgba(56,189,248,0.35)",
+                background: "rgba(2,6,23,0.8)",
+                color: "#bae6fd",
+                padding: "8px 10px",
+                fontSize: 13,
+              }}
+            />
+          </div>
           {aiRoutePolicies.length === 0 ? (
             <p style={{ color: "#93c5fd" }}>当前租户暂无路由策略（使用默认路由）</p>
+          ) : filteredRoutePolicies.length === 0 ? (
+            <p style={{ color: "#93c5fd" }}>未匹配到策略，请调整筛选关键字。</p>
           ) : (
             <ul style={{ margin: 0, paddingLeft: 18 }}>
-              {aiRoutePolicies.slice(0, 6).map((item) => (
+              {filteredRoutePolicies.slice(0, 8).map((item) => (
                 <li key={item.id} style={{ marginBottom: 6, color: "#bae6fd", fontSize: 13 }}>
                   <div>
                     {item.plugin_id} / {item.task_type} ｜链路 {item.model_chain || "-"} ｜禁用{" "}
