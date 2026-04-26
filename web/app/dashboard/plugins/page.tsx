@@ -49,6 +49,8 @@ type RoutePolicySubmitResult = {
   updated_at: string;
 };
 
+const ROUTE_POLICY_PAGE_SIZE = 8;
+
 const demoPlugins: PluginRow[] = [
   {
     id: "plugin.translation.gpt",
@@ -91,6 +93,8 @@ export default function PluginDashboardPage() {
   const [lastRoutePolicySubmit, setLastRoutePolicySubmit] = useState<RoutePolicySubmitResult | null>(null);
   const [routePolicyKeyword, setRoutePolicyKeyword] = useState("");
   const [selectedPolicyIds, setSelectedPolicyIds] = useState<string[]>([]);
+  const [routePolicyOffset, setRoutePolicyOffset] = useState(0);
+  const [routePolicyTotal, setRoutePolicyTotal] = useState(0);
 
   const actionHint = useMemo(() => {
     if (!loadingAction) {
@@ -101,15 +105,10 @@ export default function PluginDashboardPage() {
 
   const filteredRoutePolicies = useMemo(() => {
     const kw = routePolicyKeyword.trim().toLowerCase();
-    const sorted = [...aiRoutePolicies].sort((a, b) => {
-      const ta = Date.parse(a.updated_at || "");
-      const tb = Date.parse(b.updated_at || "");
-      return (Number.isNaN(tb) ? 0 : tb) - (Number.isNaN(ta) ? 0 : ta);
-    });
     if (!kw) {
-      return sorted;
+      return aiRoutePolicies;
     }
-    return sorted.filter((item) => {
+    return aiRoutePolicies.filter((item) => {
       const hay = `${item.plugin_id} ${item.task_type} ${item.model_chain} ${item.disabled_models}`.toLowerCase();
       return hay.includes(kw);
     });
@@ -118,15 +117,17 @@ export default function PluginDashboardPage() {
   const refreshAiOpsPanels = async () => {
     const [recordsRes, policiesRes] = await Promise.all([
       apiGet("/api/v1/ai/billing/records?offset=0&limit=6"),
-      apiGet("/api/v1/ai/route/policies"),
+      apiGet(`/api/v1/ai/route/policies?offset=${routePolicyOffset}&limit=${ROUTE_POLICY_PAGE_SIZE}`),
     ]);
     if (recordsRes.ok && recordsRes.data && typeof recordsRes.data === "object" && "items" in recordsRes.data) {
       const items = (recordsRes.data as { items: AIBillingRecord[] }).items;
       setAiBillingRecords(Array.isArray(items) ? items : []);
     }
     if (policiesRes.ok && policiesRes.data && typeof policiesRes.data === "object" && "items" in policiesRes.data) {
-      const items = (policiesRes.data as { items: AIRoutePolicy[] }).items;
+      const body = policiesRes.data as { items: AIRoutePolicy[]; total?: number };
+      const items = body.items;
       setAiRoutePolicies(Array.isArray(items) ? items : []);
+      setRoutePolicyTotal(typeof body.total === "number" ? body.total : Array.isArray(items) ? items.length : 0);
       setSelectedPolicyIds((prev) =>
         prev.filter((id) => (Array.isArray(items) ? items.some((x) => x.id === id) : false)),
       );
@@ -135,7 +136,7 @@ export default function PluginDashboardPage() {
 
   useEffect(() => {
     void refreshAiOpsPanels();
-  }, []);
+  }, [routePolicyOffset]);
 
   const runAction = async (
     pluginId: string,
@@ -322,6 +323,11 @@ export default function PluginDashboardPage() {
     void refreshAiOpsPanels();
     setLoadingAction("");
   };
+
+  const routePolicyPageStart = routePolicyTotal === 0 ? 0 : routePolicyOffset + 1;
+  const routePolicyPageEnd = Math.min(routePolicyOffset + ROUTE_POLICY_PAGE_SIZE, routePolicyTotal);
+  const canPrevRoutePolicyPage = routePolicyOffset > 0;
+  const canNextRoutePolicyPage = routePolicyOffset + ROUTE_POLICY_PAGE_SIZE < routePolicyTotal;
 
   const statusColor = (status: PluginStatus) => {
     if (status === "运行中") return "#0f766e";
@@ -643,13 +649,34 @@ export default function PluginDashboardPage() {
               <span style={{ color: "#93c5fd", fontSize: 12 }}>先勾选，再批量删除。</span>
             </div>
           ) : null}
+          <div style={{ marginBottom: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <button
+              style={{ ...buttonStyle, padding: "6px 10px", fontSize: 12 }}
+              type="button"
+              disabled={Boolean(loadingAction) || !canPrevRoutePolicyPage}
+              onClick={() => setRoutePolicyOffset((prev) => Math.max(0, prev - ROUTE_POLICY_PAGE_SIZE))}
+            >
+              上一页
+            </button>
+            <button
+              style={{ ...buttonStyle, padding: "6px 10px", fontSize: 12 }}
+              type="button"
+              disabled={Boolean(loadingAction) || !canNextRoutePolicyPage}
+              onClick={() => setRoutePolicyOffset((prev) => prev + ROUTE_POLICY_PAGE_SIZE)}
+            >
+              下一页
+            </button>
+            <span style={{ color: "#93c5fd", fontSize: 12 }}>
+              当前 {routePolicyPageStart}-{routePolicyPageEnd} / 共 {routePolicyTotal} 条
+            </span>
+          </div>
           {aiRoutePolicies.length === 0 ? (
             <p style={{ color: "#93c5fd" }}>当前租户暂无路由策略（使用默认路由）</p>
           ) : filteredRoutePolicies.length === 0 ? (
             <p style={{ color: "#93c5fd" }}>未匹配到策略，请调整筛选关键字。</p>
           ) : (
             <ul style={{ margin: 0, paddingLeft: 18 }}>
-              {filteredRoutePolicies.slice(0, 8).map((item) => (
+              {filteredRoutePolicies.map((item) => (
                 <li key={item.id} style={{ marginBottom: 6, color: "#bae6fd", fontSize: 13 }}>
                   <div>
                     <input

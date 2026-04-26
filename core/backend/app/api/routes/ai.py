@@ -326,12 +326,22 @@ def list_audit_logs(
 
 
 @router.get("/route/policies", response_model=AIRoutePolicyListResponse)
-def list_route_policies(request: Request, db: Session = Depends(get_db)):
+def list_route_policies(
+    request: Request,
+    db: Session = Depends(get_db),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=100),
+):
     tenant_id = request.state.tenant_id
+    total = db.scalar(
+        select(func.count()).select_from(AIRoutePolicy).where(AIRoutePolicy.tenant_id == tenant_id)
+    ) or 0
     rows = db.scalars(
         select(AIRoutePolicy)
         .where(AIRoutePolicy.tenant_id == tenant_id)
         .order_by(AIRoutePolicy.updated_at.desc())
+        .offset(offset)
+        .limit(limit)
     ).all()
     return AIRoutePolicyListResponse(
         items=[
@@ -344,7 +354,10 @@ def list_route_policies(request: Request, db: Session = Depends(get_db)):
                 updated_at=r.updated_at.isoformat() if r.updated_at else "",
             )
             for r in rows
-        ]
+        ],
+        offset=offset,
+        limit=limit,
+        total=int(total),
     )
 
 

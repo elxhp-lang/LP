@@ -177,7 +177,7 @@
 | AI 用量摘要 | GET | `/api/v1/ai/usage/summary` | - | 聊天页显示当月配额、已用量、成功/失败调用次数 |
 | AI 配额设置（占位） | POST | `/api/v1/ai/quota` | `quota_units` | 管理侧可调整租户月度配额（MVP 直接接口） |
 | AI 审计日志 | GET | `/api/v1/ai/audit/logs` | Query: `offset?`,`limit?` | 聊天页展示最近调用记录（状态/错误摘要） |
-| AI 路由策略列表 | GET | `/api/v1/ai/route/policies` | - | 管理侧查看租户级插件/任务路由策略 |
+| AI 路由策略列表 | GET | `/api/v1/ai/route/policies` | Query: `offset?`,`limit?` | 管理侧分页查看租户级插件/任务路由策略（按更新时间倒序） |
 | AI 路由策略设置 | POST | `/api/v1/ai/route/policies` | `plugin_id`,`task_type`,`model_chain`,`disabled_models` | 管理侧覆盖路由链路并临时禁用模型 |
 | AI 路由策略删除 | POST | `/api/v1/ai/route/policies/delete` | `id` | 管理侧按策略 ID 删除指定路由策略 |
 | AI 路由策略批量删除 | POST | `/api/v1/ai/route/policies/delete-batch` | `ids[]` | 管理侧批量清理已选策略 |

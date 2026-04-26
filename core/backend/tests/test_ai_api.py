@@ -227,6 +227,31 @@ def test_ai_route_policy_batch_delete():
     assert ids[2] in left_ids
 
 
+def test_ai_route_policy_list_pagination():
+    tenant = f"test-tenant-ai-{uuid4()}"
+    headers = {"x-tenant-id": tenant}
+    for i in range(4):
+        created = client.post(
+            "/api/v1/ai/route/policies",
+            headers=headers,
+            json={
+                "plugin_id": "plugin.translation.gpt",
+                "task_type": f"page-{i}",
+                "model_chain": "a|b",
+                "disabled_models": "",
+            },
+        )
+        assert created.status_code == 200
+
+    listing = client.get("/api/v1/ai/route/policies?offset=1&limit=2", headers=headers)
+    assert listing.status_code == 200
+    body = listing.json()
+    assert body["offset"] == 1
+    assert body["limit"] == 2
+    assert body["total"] >= 4
+    assert len(body["items"]) == 2
+
+
 def test_ai_route_circuit_breaker_skips_hot_failed_model(monkeypatch):
     tenant = f"test-tenant-ai-{uuid4()}"
     headers = {"x-tenant-id": tenant}

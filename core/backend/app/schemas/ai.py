@@ -64,6 +64,9 @@ class AIRoutePolicyItem(BaseModel):
 
 class AIRoutePolicyListResponse(BaseModel):
     items: list[AIRoutePolicyItem]
+    offset: int
+    limit: int
+    total: int
 
 
 class AIRoutePolicyDeleteRequest(BaseModel):
