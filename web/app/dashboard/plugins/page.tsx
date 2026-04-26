@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { apiGet, apiPost } from "@/lib/api";
 
@@ -117,7 +117,7 @@ export default function PluginDashboardPage() {
     });
   }, [aiRoutePolicies, routePolicyKeyword]);
 
-  const refreshAiOpsPanels = async () => {
+  const refreshAiOpsPanels = useCallback(async () => {
     const [recordsRes, policiesRes] = await Promise.all([
       apiGet("/api/v1/ai/billing/records?offset=0&limit=6"),
       apiGet(`/api/v1/ai/route/policies?offset=${routePolicyOffset}&limit=${ROUTE_POLICY_PAGE_SIZE}`),
@@ -135,11 +135,11 @@ export default function PluginDashboardPage() {
         prev.filter((id) => (Array.isArray(items) ? items.some((x) => x.id === id) : false)),
       );
     }
-  };
+  }, [routePolicyOffset]);
 
   useEffect(() => {
     void refreshAiOpsPanels();
-  }, [routePolicyOffset]);
+  }, [refreshAiOpsPanels]);
 
   const runAction = async (
     pluginId: string,
@@ -191,7 +191,7 @@ export default function PluginDashboardPage() {
     );
   };
 
-  const usePlugin = async (plugin: PluginRow) => {
+  const runPlugin = async (plugin: PluginRow) => {
     const action =
       plugin.id === "plugin.translation.gpt" ? "translate-product" : "analyze-market";
     const apiName = plugin.id === "plugin.translation.gpt" ? "ai:invoke" : "market:read";
@@ -561,7 +561,7 @@ export default function PluginDashboardPage() {
             </button>
             <button
               style={buttonStyle}
-              onClick={() => usePlugin(plugin)}
+              onClick={() => runPlugin(plugin)}
               disabled={Boolean(loadingAction)}
             >
               使用
