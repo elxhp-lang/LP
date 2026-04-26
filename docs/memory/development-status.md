@@ -111,3 +111,4 @@
 | 2026-04-26 | 支付渠道接口：`/billing/channels`、`/checkout`、`/checkout/confirm`（支付宝/微信/钱包）；`pytest` 30 passed |
 | 2026-04-26 | 订单状态页：`/billing/orders/[orderId]` 自动刷新，支持模拟支付成功/失败；`pytest` 31 passed |
 | 2026-04-26 | 支付闭环增强：订单页支付成功后自动安装插件，并支持回跳到来源流程（如 `/chat`） |
+| 2026-04-26 | 一键闭环：聊天 preflight 失败可直达购买，回跳 `/chat?autopreflight=1` 自动再次预检 |

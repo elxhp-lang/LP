@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 import { apiPost } from "@/lib/api";
 
@@ -34,21 +34,7 @@ export default function ChatPage() {
   const [preflight, setPreflight] = useState<PreflightPayload | null>(null);
   const [savingWf, setSavingWf] = useState(false);
 
-  const onRecommend = async () => {
-    setLoading(true);
-    setResult(null);
-    const res = await apiPost("/api/v1/agent/recommend", { message });
-    setLoading(false);
-    if (res.ok && res.data && typeof res.data === "object" && "intent_summary" in res.data) {
-      setResult(res.data as RecommendPayload);
-    } else {
-      setResult(null);
-      window.alert(typeof res.message === "string" ? res.message : "推荐失败");
-    }
-  };
-
-  const onPreflight = async () => {
-    const ids = result?.plugins.map((p) => p.plugin_id) ?? [];
+  const runPreflightByIds = async (ids: string[]) => {
     const res = await apiPost("/api/v1/agent/preflight", { plugin_ids: ids });
     if (
       res.ok &&
@@ -69,6 +55,51 @@ export default function ChatPage() {
       });
     }
   };
+
+  const onRecommend = async () => {
+    setLoading(true);
+    setResult(null);
+    const res = await apiPost("/api/v1/agent/recommend", { message });
+    setLoading(false);
+    if (res.ok && res.data && typeof res.data === "object" && "intent_summary" in res.data) {
+      const payload = res.data as RecommendPayload;
+      setResult(payload);
+      if (typeof window !== "undefined") {
+        const ids = payload.plugins.map((p) => p.plugin_id);
+        window.localStorage.setItem("lp_last_recommend_plugin_ids", JSON.stringify(ids));
+      }
+    } else {
+      setResult(null);
+      window.alert(typeof res.message === "string" ? res.message : "推荐失败");
+    }
+  };
+
+  const onPreflight = async () => {
+    const ids = result?.plugins.map((p) => p.plugin_id) ?? [];
+    await runPreflightByIds(ids);
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const qs = new URLSearchParams(window.location.search);
+    if (qs.get("autopreflight") !== "1") {
+      return;
+    }
+    const raw = window.localStorage.getItem("lp_last_recommend_plugin_ids");
+    if (!raw) {
+      return;
+    }
+    try {
+      const ids = JSON.parse(raw) as unknown;
+      if (Array.isArray(ids) && ids.every((x) => typeof x === "string")) {
+        void runPreflightByIds(ids as string[]);
+      }
+    } catch {
+      // ignore malformed local storage
+    }
+  }, []);
 
   const onSaveWorkflow = async () => {
     if (!result) {
@@ -244,7 +275,7 @@ export default function ChatPage() {
           {preflight.needs_purchase && result?.plugins?.[0] ? (
             <p style={{ marginTop: 10 }}>
               <Link
-                href={`/market/${encodeURIComponent(result.plugins[0].plugin_id)}`}
+                href={`/market/${encodeURIComponent(result.plugins[0].plugin_id)}?return_to=${encodeURIComponent("/chat?autopreflight=1")}`}
                 style={{ color: "var(--color-accent)", fontSize: 13 }}
               >
                 去购买首个推荐插件：{result.plugins[0].name}

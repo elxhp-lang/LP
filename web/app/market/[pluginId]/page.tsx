@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { apiGet, apiPost } from "@/lib/api";
@@ -21,6 +21,7 @@ type PluginDetail = {
 export default function MarketPluginDetailPage() {
   const params = useParams<{ pluginId: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const pluginId = typeof params?.pluginId === "string" ? params.pluginId : "";
   const [detail, setDetail] = useState<PluginDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,6 +30,7 @@ export default function MarketPluginDetailPage() {
   const [wallet, setWallet] = useState<number | null>(null);
   const [payChannel, setPayChannel] = useState<"ALIPAY" | "WECHAT_PAY" | "WALLET">("ALIPAY");
   const [banner, setBanner] = useState<string | null>(null);
+  const returnTo = searchParams.get("return_to") || "/chat?autopreflight=1";
 
   useEffect(() => {
     let active = true;
@@ -113,7 +115,7 @@ export default function MarketPluginDetailPage() {
     if (status === "pending" && payUrl) {
       setBanner(`订单已创建，请在${payChannel === "ALIPAY" ? "支付宝" : "微信"}完成支付（占位链接）：${payUrl}`);
       if (orderId) {
-        router.push(`/billing/orders/${encodeURIComponent(orderId)}?return_to=${encodeURIComponent("/chat")}`);
+        router.push(`/billing/orders/${encodeURIComponent(orderId)}?return_to=${encodeURIComponent(returnTo)}`);
       }
     } else if (status === "paid") {
       setBanner("已支付完成，可继续安装与配置插件。");
@@ -125,7 +127,7 @@ export default function MarketPluginDetailPage() {
     } else {
       setBanner(`下单结果：${status}${nextAction ? `（${nextAction}）` : ""}`);
       if (orderId) {
-        router.push(`/billing/orders/${encodeURIComponent(orderId)}?return_to=${encodeURIComponent("/chat")}`);
+        router.push(`/billing/orders/${encodeURIComponent(orderId)}?return_to=${encodeURIComponent(returnTo)}`);
       }
     }
   };

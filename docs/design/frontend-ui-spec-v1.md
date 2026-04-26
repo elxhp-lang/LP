@@ -166,6 +166,7 @@
 | 支付结果确认（回调占位） | POST | `/api/v1/billing/checkout/confirm` | `order_id`,`paid`,`provider_trade_no?` | 更新订单为 `paid/failed` |
 | 订单详情 | GET | `/api/v1/billing/purchases/{order_id}` | - | `/billing/orders/[orderId]` 状态页自动刷新，并在已支付后触发安装 |
 | 购买列表（占位） | GET | `/api/v1/billing/purchases` | - | 订单页预留 |
+| 购买回跳预检 | GET（前端路由参数） | `/chat?autopreflight=1` | - | 从购买链路返回对话后自动再跑 preflight |
 | AI 调度 | POST | `/api/v1/ai/invoke` | `plugin_id`, `task_type`, `payload` | 插件/内部调用；后端按 `AI_PROVIDER` 走 stub 或 OpenAI 兼容接口 |
 
 ### 6.2 预留接口（命名空间建议）
