@@ -34,6 +34,14 @@ type FlowRunLog = {
   message: string;
 };
 
+type FlowRunSummary = {
+  ranAt: string;
+  totalSteps: number;
+  successSteps: number;
+  failedSteps: number;
+  firstFailedStepTitle: string | null;
+};
+
 export default function ChatPage() {
   const [message, setMessage] = useState("我是跨境卖家，需要翻译商品详情并看欧洲市场趋势");
   const [loading, setLoading] = useState(false);
@@ -43,6 +51,7 @@ export default function ChatPage() {
   const [runningFlow, setRunningFlow] = useState(false);
   const [flowLogs, setFlowLogs] = useState<FlowRunLog[]>([]);
   const [flowReadyHint, setFlowReadyHint] = useState<string | null>(null);
+  const [lastRunSummary, setLastRunSummary] = useState<FlowRunSummary | null>(null);
 
   const runPreflightByIds = async (ids: string[]) => {
     const res = await apiPost("/api/v1/agent/preflight", { plugin_ids: ids });
@@ -112,6 +121,18 @@ export default function ChatPage() {
     } catch {
       // ignore malformed local storage
     }
+
+    const summaryRaw = window.localStorage.getItem("lp_last_flow_run_summary");
+    if (summaryRaw) {
+      try {
+        const parsed = JSON.parse(summaryRaw) as FlowRunSummary;
+        if (parsed && typeof parsed.totalSteps === "number" && typeof parsed.successSteps === "number") {
+          setLastRunSummary(parsed);
+        }
+      } catch {
+        // ignore malformed local storage
+      }
+    }
   }, []);
 
   const onSaveWorkflow = async () => {
@@ -163,6 +184,17 @@ export default function ChatPage() {
       }
     }
     setRunningFlow(false);
+    const summary: FlowRunSummary = {
+      ranAt: new Date().toISOString(),
+      totalSteps: logs.length,
+      successSteps: logs.filter((x) => x.ok).length,
+      failedSteps: logs.filter((x) => !x.ok).length,
+      firstFailedStepTitle: logs.find((x) => !x.ok)?.stepTitle ?? null,
+    };
+    setLastRunSummary(summary);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("lp_last_flow_run_summary", JSON.stringify(summary));
+    }
   };
 
   return (
@@ -205,6 +237,29 @@ export default function ChatPage() {
           }}
         >
           {flowReadyHint}
+        </div>
+      ) : null}
+      {lastRunSummary ? (
+        <div
+          style={{
+            marginBottom: "var(--space-md)",
+            padding: "var(--space-sm) var(--space-md)",
+            borderRadius: "var(--radius-control)",
+            border: "1px solid var(--color-border-subtle)",
+            background: "var(--color-code-bg)",
+            color: "var(--color-text-secondary)",
+            fontSize: 13,
+          }}
+        >
+          最近一次执行：成功 {lastRunSummary.successSteps}/{lastRunSummary.totalSteps}
+          {lastRunSummary.failedSteps > 0 ? (
+            <span style={{ color: "var(--color-warning)" }}>
+              {" "}
+              ｜失败 {lastRunSummary.failedSteps}（首个失败步骤：{lastRunSummary.firstFailedStepTitle}）
+            </span>
+          ) : (
+            <span style={{ color: "var(--color-success)" }}> ｜全部通过，可直接复用该流程</span>
+          )}
         </div>
       ) : null}
 

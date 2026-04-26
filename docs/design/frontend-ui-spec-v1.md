@@ -169,6 +169,7 @@
 | 购买回跳预检 | GET（前端路由参数） | `/chat?autopreflight=1` | - | 从购买链路返回对话后自动再跑 preflight |
 | 支付安装完成提示 | GET（前端路由参数） | `/chat?flow_ready=1` | - | 聊天页显示“已就绪可执行”提示 |
 | 推荐流程执行（前端编排） | POST（逐步） | `/api/v1/plugins/use` | `plugin_id`,`action`,`api_name=ai:invoke` | 聊天页“一键运行推荐流程”逐步执行并显示日志 |
+| 执行摘要卡（前端状态） | localStorage | `lp_last_flow_run_summary` | - | 聊天页展示最近一次执行成功/失败统计 |
 | AI 调度 | POST | `/api/v1/ai/invoke` | `plugin_id`, `task_type`, `payload` | 插件/内部调用；后端按 `AI_PROVIDER` 走 stub 或 OpenAI 兼容接口 |
 
 ### 6.2 预留接口（命名空间建议）
