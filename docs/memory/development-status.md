@@ -38,13 +38,14 @@
 | 工作流持久化 v1 | 可用 | 表 `workflows`；`GET/POST /api/v1/workflows`、`GET /{id}`；定义 JSON `version`+`steps`；`/chat` 可保存草案 |
 | 插件市场 MVP | 可用 | 市场支持 `q/category/offset/limit` 搜索筛选分页、`GET /api/v1/marketplace/categories`、详情页与安装闭环 |
 | AI 网关 MVP | 可用 | `POST /api/v1/ai/invoke`：`stub`（默认）或 `openai_compatible`（`AI_*` 环境变量，兼容 DeepSeek/OpenAI 类接口） |
+| 计费/购买占位 | 可用 | `GET /api/v1/billing/wallet`、`POST /wallet/topup`、`GET /purchases`、`POST /purchase`；市场详情页可触发购买 |
 | 前端规范 | 草案 | `frontend-ui-spec-v1.md`，确认后可标为 frozen |
 | 自动化验证 | 已跑通 | 后端 `pytest`（含 projects API）；**接手后请在 `core/backend` 下定期执行** |
 
 ### 最近一次自动化验证（由开发侧执行，非业务方操作）
 
 - 命令：`cd core/backend && .venv\Scripts\python -m pytest -q`  
-- 结果：**25 passed**（含市场搜索/分类/分页、插件 use 联动 AI 网关、AI 网关、工作流、Agent、context、projects 等）  
+- 结果：**27 passed**（含 billing 钱包/购买、市场搜索/分类/分页、插件 use 联动 AI 网关、AI 网关、工作流、Agent、context、projects 等）  
 - 健康检查：`GET http://127.0.0.1:8000/health` → **200**（需本地已启动后端）  
 
 > **数据库说明**：若在增加 `projects` 表之前已有 `lp.db`，需**重启后端**或确保启动时执行 `init_db()`，以便 SQLite `create_all` 创建新表。
@@ -59,7 +60,7 @@
 2. ~~**占位页面**：`/chat`、`/market`、`/workflow` 与导航。~~（已完成）  
 3. ~~**超级 Agent v1（MVP）**：规则推荐 + preflight 占位 API + `/chat` 展示。~~（已完成骨架；后续再接真实计费闸门与 LLM）  
 4. ~~**工作流 v1**：线性步骤存储 + 列表/只读展示 + 对话页保存。~~（已完成；后续 DAG 编辑、执行态、日志）  
-5. **插件市场扩展**：上架审核、订单、搜索与分页（当前为静态目录 + 列表/详情 + 安装闭环）。  
+5. **插件市场扩展**：上架审核、订单与支付联调（当前为目录 + 搜索筛选分页 + 列表/详情 + 安装 + 购买占位）。  
 6. **移动端**：执行与查看优先，API 与 Web 共用。  
 7. **AI 网关进阶**：调用配额、用量统计、审计日志、多模型路由（当前已具备 stub + OpenAI 兼容 HTTP）。  
 8. **示例插件做实**：真实模型调用、评测与计费扣次。  
@@ -105,3 +106,4 @@
 | 2026-04-26 | 插件 API：`/plugins/use` 返回 `lifecycle_events`，`api_name=ai:invoke` 时带 `output`；`pytest` 22 passed |
 | 2026-04-26 | 市场详情页：`/market/[pluginId]` 联调 `GET /api/v1/marketplace/plugins/{plugin_id}` 并支持安装 |
 | 2026-04-26 | 市场扩展：`/market` 搜索/分类/分页；后端 `q/category/offset/limit` + `/categories`；`pytest` 25 passed |
+| 2026-04-26 | 计费占位：`/api/v1/billing/*`（wallet/topup/purchases/purchase），详情页新增购买按钮；`pytest` 27 passed |

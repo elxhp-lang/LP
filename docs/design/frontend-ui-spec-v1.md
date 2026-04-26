@@ -158,6 +158,10 @@
 | 市场目录 | GET | `/api/v1/marketplace/plugins` | Query：`q?`,`category?`,`offset?`,`limit?` | `/market` 列表 + 搜索 + 分类 + 分页 |
 | 市场分类 | GET | `/api/v1/marketplace/categories` | - | `/market` 分类下拉 |
 | 市场详情 | GET | `/api/v1/marketplace/plugins/{plugin_id}` | - | `/market/[pluginId]` 详情页（案例 + 安装） |
+| 钱包余额 | GET | `/api/v1/billing/wallet` | - | 详情页展示余额 |
+| 钱包充值（占位） | POST | `/api/v1/billing/wallet/topup` | `amount` | 余额变更（后续接真实支付） |
+| 创建购买记录（占位） | POST | `/api/v1/billing/purchase` | `plugin_id`, `amount`, `currency` | 购买按钮状态与提示 |
+| 购买列表（占位） | GET | `/api/v1/billing/purchases` | - | 订单页预留 |
 | AI 调度 | POST | `/api/v1/ai/invoke` | `plugin_id`, `task_type`, `payload` | 插件/内部调用；后端按 `AI_PROVIDER` 走 stub 或 OpenAI 兼容接口 |
 
 ### 6.2 预留接口（命名空间建议）
