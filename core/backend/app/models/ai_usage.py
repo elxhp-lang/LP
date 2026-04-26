@@ -46,3 +46,19 @@ class AIAuditLog(Base):
     request_preview: Mapped[str] = mapped_column(String(1000), default="")
     output_preview: Mapped[str] = mapped_column(String(1000), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), server_default=func.now(), index=True)
+
+
+class AIRoutePolicy(Base):
+    __tablename__ = "ai_route_policies"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    tenant_id: Mapped[str] = mapped_column(String(36), index=True)
+    plugin_id: Mapped[str] = mapped_column(String(200), index=True, default="*")
+    task_type: Mapped[str] = mapped_column(String(120), index=True, default="*")
+    model_chain: Mapped[str] = mapped_column(String(500), default="")
+    disabled_models: Mapped[str] = mapped_column(String(500), default="")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )

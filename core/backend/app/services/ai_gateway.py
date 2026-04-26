@@ -45,6 +45,18 @@ def _resolve_model_candidates(task_type: str) -> list[str]:
     return out
 
 
+def _merge_candidates(task_type: str, preferred_chain: list[str] | None) -> list[str]:
+    base = _resolve_model_candidates(task_type)
+    if not preferred_chain:
+        return base
+    out: list[str] = []
+    for model in preferred_chain + base:
+        m = model.strip()
+        if m and m not in out:
+            out.append(m)
+    return out
+
+
 def _openai_compatible_invoke(payload: AIInvokeRequest, model_name: str) -> dict[str, Any]:
     cfg = get_ai_settings()
     base = cfg.base_url or "https://api.openai.com"
@@ -93,11 +105,19 @@ def _openai_compatible_invoke(payload: AIInvokeRequest, model_name: str) -> dict
     }
 
 
-def invoke_model(payload: AIInvokeRequest) -> dict[str, Any]:
+def invoke_model(
+    payload: AIInvokeRequest,
+    preferred_chain: list[str] | None = None,
+    blocked_models: set[str] | None = None,
+) -> dict[str, Any]:
     cfg = get_ai_settings()
     prov = cfg.provider
     model_name = _resolve_model_for_task(payload.task_type)
-    model_candidates = _resolve_model_candidates(payload.task_type)
+    model_candidates = _merge_candidates(payload.task_type, preferred_chain)
+    if blocked_models:
+        filtered = [m for m in model_candidates if m not in blocked_models]
+        if filtered:
+            model_candidates = filtered
 
     if prov in ("stub", "none", ""):
         result = _stub_response(payload)
@@ -135,6 +155,7 @@ def invoke_model(payload: AIInvokeRequest) -> dict[str, Any]:
                 result["route_model"] = candidate
                 result["route_chain"] = model_candidates
                 result["route_fallback_used"] = idx > 0
+                result["route_errors"] = route_errors
                 return result
             except httpx.HTTPStatusError as exc:
                 detail = exc.response.text[:300] if exc.response is not None else str(exc)
@@ -147,6 +168,7 @@ def invoke_model(payload: AIInvokeRequest) -> dict[str, Any]:
             "route_model": model_candidates[-1] if model_candidates else model_name,
             "route_chain": model_candidates,
             "route_fallback_used": len(model_candidates) > 1,
+            "route_errors": route_errors,
             "output": {
                 "message": "ai request failed after fallback",
                 "pluginId": payload.plugin_id,

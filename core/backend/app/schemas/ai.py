@@ -44,3 +44,23 @@ class AIAuditLogListResponse(BaseModel):
     items: list[AIAuditLogItem]
     offset: int
     limit: int
+
+
+class AIRoutePolicyUpsertRequest(BaseModel):
+    plugin_id: str = "*"
+    task_type: str = "*"
+    model_chain: str
+    disabled_models: str = ""
+
+
+class AIRoutePolicyItem(BaseModel):
+    id: str
+    plugin_id: str
+    task_type: str
+    model_chain: str
+    disabled_models: str
+    updated_at: str
+
+
+class AIRoutePolicyListResponse(BaseModel):
+    items: list[AIRoutePolicyItem]

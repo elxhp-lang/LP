@@ -3,7 +3,7 @@ from app.models.project import Project
 from app.models.user import User
 from app.models.workflow import Workflow
 from app.models.billing import PluginPurchase, Wallet
-from app.models.ai_usage import AIAuditLog, AIQuota, AIUsageEvent
+from app.models.ai_usage import AIAuditLog, AIQuota, AIRoutePolicy, AIUsageEvent
 
 __all__ = [
     "User",
@@ -15,4 +15,5 @@ __all__ = [
     "AIUsageEvent",
     "AIQuota",
     "AIAuditLog",
+    "AIRoutePolicy",
 ]

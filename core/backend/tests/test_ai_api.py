@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
+import httpx
 
 from app.main import app
 
@@ -110,14 +111,11 @@ def test_ai_model_fallback_to_second_candidate(monkeypatch):
             resp = MagicMock()
             resp.status_code = 429
             resp.text = "rate limited"
-            err = httpx.HTTPStatusError("rate limited", request=MagicMock(), response=resp)
-            raise err
+            raise httpx.HTTPStatusError("rate limited", request=MagicMock(), response=resp)
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {"choices": [{"message": {"content": "fallback-ok"}}]}
         return mock_resp
-
-    import httpx
 
     monkeypatch.setattr("app.services.ai_gateway.httpx.post", fake_post)
 
@@ -130,6 +128,105 @@ def test_ai_model_fallback_to_second_candidate(monkeypatch):
     body = r.json()
     assert body["model"] == "fallback-model"
     assert calls == ["primary-model", "fallback-model"]
+
+
+def test_ai_route_policy_overrides_chain(monkeypatch):
+    tenant = f"test-tenant-ai-{uuid4()}"
+    headers = {"x-tenant-id": tenant}
+    monkeypatch.setenv("AI_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("AI_API_KEY", "sk-test")
+    monkeypatch.setenv("AI_BASE_URL", "https://api.example.com")
+    monkeypatch.setenv("AI_MODEL", "default-model")
+
+    upsert = client.post(
+        "/api/v1/ai/route/policies",
+        headers=headers,
+        json={
+            "plugin_id": "plugin.translation.gpt",
+            "task_type": "translate",
+            "model_chain": "policy-model|default-model",
+            "disabled_models": "",
+        },
+    )
+    assert upsert.status_code == 200
+
+    called = {"model": ""}
+
+    def fake_post(*args, **kwargs):
+        called["model"] = kwargs["json"]["model"]
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"choices": [{"message": {"content": "ok"}}]}
+        return mock_resp
+
+    monkeypatch.setattr("app.services.ai_gateway.httpx.post", fake_post)
+    r = client.post(
+        "/api/v1/ai/invoke",
+        headers=headers,
+        json={"plugin_id": "plugin.translation.gpt", "task_type": "translate", "payload": {"text": "x"}},
+    )
+    assert r.status_code == 200
+    assert called["model"] == "policy-model"
+
+
+def test_ai_route_circuit_breaker_skips_hot_failed_model(monkeypatch):
+    tenant = f"test-tenant-ai-{uuid4()}"
+    headers = {"x-tenant-id": tenant}
+    monkeypatch.setenv("AI_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("AI_API_KEY", "sk-test")
+    monkeypatch.setenv("AI_BASE_URL", "https://api.example.com")
+    monkeypatch.setenv("AI_MODEL", "safe-model")
+    monkeypatch.setenv("AI_ROUTE_BLOCK_THRESHOLD", "2")
+    monkeypatch.setenv("AI_ROUTE_BLOCK_WINDOW_SEC", "3600")
+
+    # Create 2 failed logs for bad-model via policy + forced failures.
+    client.post(
+        "/api/v1/ai/route/policies",
+        headers=headers,
+        json={
+            "plugin_id": "plugin.translation.gpt",
+            "task_type": "translate",
+            "model_chain": "bad-model|safe-model",
+            "disabled_models": "",
+        },
+    )
+
+    calls: list[str] = []
+
+    def fake_post(*args, **kwargs):
+        model = kwargs["json"]["model"]
+        calls.append(model)
+        if model == "bad-model":
+            resp = MagicMock()
+            resp.status_code = 500
+            resp.text = "boom"
+            raise httpx.HTTPStatusError("boom", request=MagicMock(), response=resp)
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"choices": [{"message": {"content": "ok"}}]}
+        return mock_resp
+
+    monkeypatch.setattr("app.services.ai_gateway.httpx.post", fake_post)
+
+    client.post(
+        "/api/v1/ai/invoke",
+        headers=headers,
+        json={"plugin_id": "plugin.translation.gpt", "task_type": "translate", "payload": {"text": "1"}},
+    )
+    client.post(
+        "/api/v1/ai/invoke",
+        headers=headers,
+        json={"plugin_id": "plugin.translation.gpt", "task_type": "translate", "payload": {"text": "2"}},
+    )
+    calls.clear()
+    r = client.post(
+        "/api/v1/ai/invoke",
+        headers=headers,
+        json={"plugin_id": "plugin.translation.gpt", "task_type": "translate", "payload": {"text": "3"}},
+    )
+    assert r.status_code == 200
+    # bad-model should be blocked by breaker on the third invoke.
+    assert calls == ["safe-model"]
 
 
 def test_ai_openai_missing_key_falls_back(monkeypatch):
