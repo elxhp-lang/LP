@@ -1,0 +1,16 @@
+{
+  "name": "plugin-template-typescript",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "sandbox": "node dist/sandbox-runner.js"
+  },
+  "dependencies": {
+    "@core/plugin-sdk": "0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

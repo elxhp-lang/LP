@@ -1,0 +1,7 @@
+{
+  "id": "plugin.translation.gpt",
+  "name": "Product Translation Plugin",
+  "version": "0.1.0",
+  "permissions": ["ai:invoke", "i18n:read", "i18n:write"],
+  "entry": "dist/index.js"
+}

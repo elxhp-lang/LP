@@ -1,0 +1,7 @@
+{
+  "id": "plugin.market.analysis.composer",
+  "name": "Market Analysis Plugin",
+  "version": "0.1.0",
+  "permissions": ["ai:invoke", "market:read", "chart:render"],
+  "entry": "dist/index.js"
+}

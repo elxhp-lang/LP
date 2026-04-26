@@ -43,3 +43,24 @@
   - 在决策日志新增 `DEC-008`，约束“先清单，后确认，再推送”。
 - 变更原因：兼顾效率与安全，避免自动推送引发误操作。
 - 影响范围：测试执行时机、提交推送动作、结果回报规范。
+
+### CHG-006：完成阶段二核心平台代码骨架初始化
+- 变更内容：
+  - 新增 `web/` Next.js 15 App Router 骨架（登录、注册、插件管理页）。
+  - 新增 `core/backend/` FastAPI 骨架（认证、插件管理、AI 调度、WebSocket 预留）。
+  - 新增 `core/types/` 共享 TypeScript 模型与 `plugins/templates/` 插件模板。
+  - 新增 Docker 与开发说明（`docker-compose.yml`、`docs/development/stage-2-dev-setup.md`）。
+  - 决策日志新增 `DEC-009`，固定阶段二采用“前端/插件 TS + 后端 FastAPI”。
+- 变更原因：按阶段里程碑进入可运行代码骨架交付，支撑后续功能迭代。
+- 影响范围：代码仓库结构、启动方式、API 骨架与测试基线。
+
+### CHG-007：完成插件生态关键组件与MVP示例落地
+- 变更内容：
+  - 新增 `core/plugin-sdk/`，提供 `IPlugin` 接口、生命周期示例、平台通信封装、沙箱运行工具。
+  - 新增 `plugins/templates/typescript-plugin-template/`（`package.json` 版本规范 + `manifest.json` 权限声明）。
+  - 新增 `plugins/examples/product-translation/` 与 `plugins/examples/market-analysis/` 两个跨境电商 MVP 插件示例。
+  - 新增 `plugins/sandbox/run_lifecycle_demo.py`，支持“安装 -> 配置 -> 使用 -> 卸载”全生命周期与权限隔离演示。
+  - 新增开发文档 `docs/development/plugin-development-guide.md`，补充沙箱调试命令与示例日志。
+  - 增强后端插件加载器与插件路由，新增 `configure/use` 生命周期接口与权限拦截。
+- 变更原因：推进阶段三交付，形成可运行、可演示、可扩展的插件生态最小闭环。
+- 影响范围：插件开发流程、平台插件管理接口、MVP 演示能力与后续生态扩展基线。

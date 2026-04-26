@@ -1,0 +1,7 @@
+{
+  "id": "plugin.template.typescript",
+  "name": "TypeScript Plugin Template",
+  "version": "0.1.0",
+  "permissions": ["ai:invoke"],
+  "entry": "dist/index.js"
+}

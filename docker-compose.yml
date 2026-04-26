@@ -1,0 +1,21 @@
+services:
+  backend:
+    build:
+      context: ./core/backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./core/backend:/app
+
+  web:
+    build:
+      context: ./web
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+      NEXT_PUBLIC_TENANT_ID: tenant_demo
+    volumes:
+      - ./web:/app
+    depends_on:
+      - backend

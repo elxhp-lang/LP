@@ -1,0 +1,15 @@
+.venv/
+**/.venv/
+node_modules/
+**/node_modules/
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+**/.pytest_cache/
+*.pyc
+*.pyo
+*.pyd
+.next/
+**/.next/
+*.db
+.DS_Store
