@@ -74,6 +74,12 @@ export default function PluginDashboardPage() {
   const [activityLogs, setActivityLogs] = useState<string[]>([]);
   const [aiBillingRecords, setAiBillingRecords] = useState<AIBillingRecord[]>([]);
   const [aiRoutePolicies, setAiRoutePolicies] = useState<AIRoutePolicy[]>([]);
+  const [newRoutePolicy, setNewRoutePolicy] = useState({
+    plugin_id: "plugin.translation.gpt",
+    task_type: "translate",
+    model_chain: "deepseek-chat|gpt-4o-mini",
+    disabled_models: "",
+  });
 
   const actionHint = useMemo(() => {
     if (!loadingAction) {
@@ -206,6 +212,16 @@ export default function PluginDashboardPage() {
       {},
       "已卸载",
     );
+  };
+
+  const createRoutePolicy = async () => {
+    setLoadingAction("新增 AI 路由策略");
+    const result = await apiPost("/api/v1/ai/route/policies", newRoutePolicy);
+    setLastResult(result);
+    const now = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+    setActivityLogs((prev) => [`[${now}] 新增路由策略 -> ${result.ok ? "成功" : "失败"}`, ...prev].slice(0, 8));
+    void refreshAiOpsPanels();
+    setLoadingAction("");
   };
 
   const statusColor = (status: PluginStatus) => {
@@ -504,6 +520,79 @@ export default function PluginDashboardPage() {
               ))}
             </ul>
           )}
+        </section>
+
+        <section
+          style={{
+            border: "1px solid rgba(56, 189, 248, 0.35)",
+            borderRadius: 12,
+            padding: 16,
+            backgroundColor: "rgba(15,23,42,0.88)",
+          }}
+        >
+          <h3 style={{ marginTop: 0 }}>快速新增路由策略</h3>
+          <div style={{ display: "grid", gap: 10 }}>
+            <label style={{ color: "#bfdbfe", fontSize: 13 }}>
+              插件 ID
+              <input
+                value={newRoutePolicy.plugin_id}
+                onChange={(event) =>
+                  setNewRoutePolicy((prev) => ({
+                    ...prev,
+                    plugin_id: event.target.value,
+                  }))
+                }
+                style={{ marginLeft: 8, width: "70%" }}
+              />
+            </label>
+            <label style={{ color: "#bfdbfe", fontSize: 13 }}>
+              任务类型
+              <input
+                value={newRoutePolicy.task_type}
+                onChange={(event) =>
+                  setNewRoutePolicy((prev) => ({
+                    ...prev,
+                    task_type: event.target.value,
+                  }))
+                }
+                style={{ marginLeft: 8, width: "70%" }}
+              />
+            </label>
+            <label style={{ color: "#bfdbfe", fontSize: 13 }}>
+              模型链路
+              <input
+                value={newRoutePolicy.model_chain}
+                onChange={(event) =>
+                  setNewRoutePolicy((prev) => ({
+                    ...prev,
+                    model_chain: event.target.value,
+                  }))
+                }
+                style={{ marginLeft: 8, width: "70%" }}
+              />
+            </label>
+            <label style={{ color: "#bfdbfe", fontSize: 13 }}>
+              禁用模型（可选）
+              <input
+                value={newRoutePolicy.disabled_models}
+                onChange={(event) =>
+                  setNewRoutePolicy((prev) => ({
+                    ...prev,
+                    disabled_models: event.target.value,
+                  }))
+                }
+                style={{ marginLeft: 8, width: "70%" }}
+              />
+            </label>
+            <button
+              style={buttonStyle}
+              type="button"
+              disabled={Boolean(loadingAction) || !newRoutePolicy.model_chain.trim()}
+              onClick={() => void createRoutePolicy()}
+            >
+              保存策略
+            </button>
+          </div>
         </section>
       </div>
     </main>
